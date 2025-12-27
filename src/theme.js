@@ -1,20 +1,29 @@
-import { MD3LightTheme } from "react-native-paper";
-// Brand colour palette
+import { MD3DarkTheme } from "react-native-paper";
+
+// Neon brand palette
 const brandColors = {
- primary: "#3949ab",
- secondary: "#ff7043",
- background: "#f5f5f5",
+  primary: "#9B59FF", // vibrant purple
+  secondary: "#00E5FF", // cyan neon
+  background: "#000000",
+  surface: "#0A0A0A",
+  neonText: "#39FF14", // neon green for text/highlights
 };
-// Material theme
+
 const theme = {
- ...MD3LightTheme,
- colors: {
- ...MD3LightTheme.colors,
- primary: brandColors.primary,
- secondary: brandColors.secondary,
- background: brandColors.background,
- },
- roundness: 8, // global border radius for components
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: brandColors.primary,
+    secondary: brandColors.secondary,
+    background: brandColors.background,
+    surface: brandColors.surface,
+    onSurface: brandColors.neonText,
+    text: brandColors.neonText,
+    // keep onPrimary white for contrast
+    onPrimary: "#000000",
+  },
+  roundness: 8,
 };
+
 export { brandColors };
 export default theme;
