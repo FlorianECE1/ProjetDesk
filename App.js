@@ -30,91 +30,95 @@ const Tab = createBottomTabNavigator();
 
 const logoSource = require("./assets/logo.png");
 const logoTitle = require("./assets/nom_logoV2.png");
-const deskImage = {
-  uri: "https://images.unsplash.com/photo-1616627986047-49bb82a651c3?auto=format&fit=crop&w=1200&q=80",
+
+const deskImages = {
+  neonEdge: require("./assets/neon.png"),
+  rgbPro: require("./assets/rgb.png"),
+  carbonXL: require("./assets/carbon.png"),
+
+  brassWalnut: require("./assets/brass.png"),
+  velvetLine: require("./assets/velvet.png"),
+  marbleGlow: require("./assets/marble.png"),
+
+  minimalWork: require("./assets/minimal.png"),
+  ergoStanding: require("./assets/ergo.png"),
+  oakProductivity: require("./assets/aok.png"),
 };
+
 import { ScrollView } from "react-native"; // <- ajoute ça en haut si pas déjà
 
 function HomeScreen() {
   const PRODUCTS = [
-    // --- GAMING (3)
-    {
-      id: "g1",
-      category: "Gaming Desks",
-      name: "Neon Edge Gaming",
-      price: 299,
-      image:
-        "https://images.unsplash.com/photo-1541558869434-2840c3c9b236?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "g2",
-      category: "Gaming Desks",
-      name: "RGB Pro Arena",
-      price: 349,
-      image:
-        "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "g3",
-      category: "Gaming Desks",
-      name: "Carbon Strike XL",
-      price: 399,
-      image:
-        "https://images.unsplash.com/photo-1516387938699-a93567ec168e?auto=format&fit=crop&w=1200&q=80",
-    },
+  // --- GAMING
+  {
+    id: "g1",
+    category: "Gaming Desks",
+    name: "Neon Edge Gaming",
+    price: 299,
+    image: deskImages.neonEdge,
+  },
+  {
+    id: "g2",
+    category: "Gaming Desks",
+    name: "RGB Pro Arena",
+    price: 349,
+    image: deskImages.rgbPro,
+  },
+  {
+    id: "g3",
+    category: "Gaming Desks",
+    name: "Carbon Strike XL",
+    price: 399,
+    image: deskImages.carbonXL,
+  },
 
-    // --- ART DECO (3)
-    {
-      id: "a1",
-      category: "Art Deco Desks",
-      name: "Brass & Walnut Deco",
-      price: 459,
-      image:
-        "https://images.unsplash.com/photo-1519710887729-3f6d0a9898f1?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "a2",
-      category: "Art Deco Desks",
-      name: "Velvet Line Deco",
-      price: 499,
-      image:
-        "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "a3",
-      category: "Art Deco Desks",
-      name: "Marble Glow Deco",
-      price: 549,
-      image:
-        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1200&q=80",
-    },
+  // --- ART DECO
+  {
+    id: "a1",
+    category: "Art Deco Desks",
+    name: "Brass & Walnut Deco",
+    price: 459,
+    image: deskImages.brassWalnut,
+  },
+  {
+    id: "a2",
+    category: "Art Deco Desks",
+    name: "Velvet Line Deco",
+    price: 499,
+    image: deskImages.velvetLine,
+  },
+  {
+    id: "a3",
+    category: "Art Deco Desks",
+    name: "Marble Glow Deco",
+    price: 549,
+    image: deskImages.marbleGlow,
+  },
 
-    // --- WORK (3)
-    {
-      id: "w1",
-      category: "Work Desks",
-      name: "Minimal Work Station",
-      price: 279,
-      image:
-        "https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "w2",
-      category: "Work Desks",
-      name: "Ergo Standing Desk",
-      price: 369,
-      image:
-        "https://images.unsplash.com/photo-1582582621959-48d27397dc8b?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "w3",
-      category: "Work Desks",
-      name: "Oak Productivity Pro",
-      price: 329,
-      image:
-        "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
-    },
-  ];
+  // --- WORK
+  {
+    id: "w1",
+    category: "Work Desks",
+    name: "Minimal Work Station",
+    price: 279,
+    image: deskImages.minimalWork,
+  },
+  {
+    id: "w2",
+    category: "Work Desks",
+    name: "Ergo Standing Desk",
+    price: 369,
+    image: deskImages.ergoStanding,
+  },
+  {
+    id: "w3",
+    category: "Work Desks",
+    name: "Oak Productivity Pro",
+    price: 329,
+    image: deskImages.oakProductivity,
+  },
+];
+
 
   const grouped = React.useMemo(() => {
     const map = new Map();
@@ -129,10 +133,11 @@ function HomeScreen() {
     <View style={styles.productCard}>
       <View style={styles.productImageWrap}>
         <Image
-          source={{ uri: item.image }}
+          source={item.image}
           style={styles.productImage}
           resizeMode="cover"
         />
+
       </View>
 
       <Text style={styles.productName}>{item.name}</Text>
@@ -730,21 +735,23 @@ const styles = StyleSheet.create({
 
   productCard: {
     width: "48%",
-    borderRadius: 18,
-    padding: 12,
+    borderRadius: 20,
+    padding: 14,
     backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
     borderColor: "rgba(120, 220, 255, 0.18)",
+    marginBottom: 14,
   },
 
+
   productImageWrap: {
-    height: 110,
-    borderRadius: 14,
+    height: 700,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "rgba(0,0,0,0.25)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
-    marginBottom: 10,
+    marginBottom: 12,
   },
 
   productImage: {
