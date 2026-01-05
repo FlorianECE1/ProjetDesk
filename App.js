@@ -36,128 +36,9 @@ const deskImage = {
 import { ScrollView } from "react-native"; // <- ajoute ça en haut si pas déjà
 
 function HomeScreen() {
-  const PRODUCTS = [
-    // --- GAMING (3)
-    {
-      id: "g1",
-      category: "Gaming Desks",
-      name: "Neon Edge Gaming",
-      price: 299,
-      image:
-        "https://images.unsplash.com/photo-1541558869434-2840c3c9b236?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "g2",
-      category: "Gaming Desks",
-      name: "RGB Pro Arena",
-      price: 349,
-      image:
-        "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "g3",
-      category: "Gaming Desks",
-      name: "Carbon Strike XL",
-      price: 399,
-      image:
-        "https://images.unsplash.com/photo-1516387938699-a93567ec168e?auto=format&fit=crop&w=1200&q=80",
-    },
-
-    // --- ART DECO (3)
-    {
-      id: "a1",
-      category: "Art Deco Desks",
-      name: "Brass & Walnut Deco",
-      price: 459,
-      image:
-        "https://images.unsplash.com/photo-1519710887729-3f6d0a9898f1?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "a2",
-      category: "Art Deco Desks",
-      name: "Velvet Line Deco",
-      price: 499,
-      image:
-        "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "a3",
-      category: "Art Deco Desks",
-      name: "Marble Glow Deco",
-      price: 549,
-      image:
-        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1200&q=80",
-    },
-
-    // --- WORK (3)
-    {
-      id: "w1",
-      category: "Work Desks",
-      name: "Minimal Work Station",
-      price: 279,
-      image:
-        "https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "w2",
-      category: "Work Desks",
-      name: "Ergo Standing Desk",
-      price: 369,
-      image:
-        "https://images.unsplash.com/photo-1582582621959-48d27397dc8b?auto=format&fit=crop&w=1200&q=80",
-    },
-    {
-      id: "w3",
-      category: "Work Desks",
-      name: "Oak Productivity Pro",
-      price: 329,
-      image:
-        "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=80",
-    },
-  ];
-
-  const grouped = React.useMemo(() => {
-    const map = new Map();
-    for (const p of PRODUCTS) {
-      if (!map.has(p.category)) map.set(p.category, []);
-      map.get(p.category).push(p);
-    }
-    return Array.from(map.entries()); // [ [category, products], ... ]
-  }, []);
-
-  const ProductCard = ({ item }) => (
-    <View style={styles.productCard}>
-      <View style={styles.productImageWrap}>
-        <Image
-          source={{ uri: item.image }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
-      </View>
-
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productPriceSmall}>${item.price}</Text>
-
-      <Button
-        mode="contained"
-        onPress={() =>
-          navigationRef.isReady() && navigationRef.navigate("Cart")
-        }
-        contentStyle={{ height: 44 }}
-        style={styles.productBuyButton}
-        labelStyle={styles.productBuyLabel}
-      >
-        BUY NOW
-      </Button>
-    </View>
-  );
-
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 22 }}
-    >
-      {/* Logo central (celui que tu as remplacé) */}
+    <View style={styles.screen}>
+      {/* Logo haut */}
       <View style={styles.brandBlock}>
         <Image
           source={logoTitle}
@@ -166,19 +47,36 @@ function HomeScreen() {
         />
       </View>
 
-      {/* Sections */}
-      {grouped.map(([category, items]) => (
-        <View key={category} style={{ marginTop: 14 }}>
-          <Text style={styles.sectionTitle}>{category}</Text>
-
-          <View style={styles.grid}>
-            {items.map((item) => (
-              <ProductCard key={item.id} item={item} />
-            ))}
+      {/* Card produit */}
+      <View style={styles.centerWrap}>
+        <View style={styles.heroCard}>
+          <View style={styles.heroImageWrap}>
+            <Image
+              source={deskImage}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
           </View>
+
+          <Text style={styles.productTitle}>Gaming Desk</Text>
+          <Text style={styles.productPrice}>$299</Text>
+
+          <Button
+            mode="contained"
+            onPress={() =>
+              navigationRef.isReady() && navigationRef.navigate("Cart")
+            }
+            contentStyle={{ height: 52 }}
+            style={styles.buyButton}
+            labelStyle={styles.buyButtonLabel}
+          >
+            BUY NOW
+          </Button>
+
+          {/* ✅ SUPPRIMÉ : plus de lien ici, accès uniquement via bouton en haut à droite */}
         </View>
-      ))}
-    </ScrollView>
+      </View>
+    </View>
   );
 }
 
@@ -713,67 +611,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 1.6,
-  },
-
-  sectionTitle: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 10,
-  },
-
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-
-  productCard: {
-    width: "48%",
-    borderRadius: 18,
-    padding: 12,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(120, 220, 255, 0.18)",
-  },
-
-  productImageWrap: {
-    height: 110,
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: "rgba(0,0,0,0.25)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    marginBottom: 10,
-  },
-
-  productImage: {
-    width: "100%",
-    height: "100%",
-  },
-
-  productName: {
-    color: "rgba(255,255,255,0.92)",
-    fontWeight: "800",
-    fontSize: 13,
-    marginBottom: 4,
-  },
-
-  productPriceSmall: {
-    color: "#FF4FD8",
-    fontSize: 14,
-    fontWeight: "900",
-    marginBottom: 10,
-  },
-
-  productBuyButton: {
-    borderRadius: 14,
-    backgroundColor: "#5B6CFF",
-  },
-
-  productBuyLabel: {
-    fontWeight: "900",
-    letterSpacing: 1,
-    fontSize: 11,
   },
 });
