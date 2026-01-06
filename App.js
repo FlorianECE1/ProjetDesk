@@ -568,7 +568,7 @@ function PaymentScreen({ route }) {
     >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Visa Checkout</Text>
-        <Text style={styles.paySubtitle}>Secure payment • Demo form</Text>
+        <Text style={styles.paySubtitle}>Secure payment</Text>
       </View>
 
       {/* Carte visuelle */}
@@ -965,12 +965,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#070A16",
     paddingHorizontal: 18,
-    paddingTop: 14,
+    paddingTop: 6,
   },
 
   appbarHeader: {
     backgroundColor: "#070A16",
     elevation: 0,
+    paddingBottom: 6,
   },
   appbarLeft: {
     flexDirection: "row",
@@ -999,8 +1000,8 @@ const styles = StyleSheet.create({
   // HOME
   brandBlock: {
     alignItems: "center",
-    marginTop: 6,
-    marginBottom: 14,
+    marginTop: 4,
+    marginBottom: 6,
   },
   brandLogo: {
     width: 210,
@@ -1441,8 +1442,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     backgroundColor: "rgba(91,108,255,0.16)",
-    borderWidth: 1,
-    borderColor: "rgba(108,240,255,0.22)",
+    borderWidth: 0,
+    borderColor: "transparent",
     shadowColor: "#6CF0FF",
     shadowOpacity: 0.18,
     shadowRadius: 18,
