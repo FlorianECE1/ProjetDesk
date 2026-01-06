@@ -6,16 +6,9 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
+  ScrollView,
 } from "react-native";
 import theme from "./src/theme";
-import {
-  Provider as PaperProvider,
-  Appbar,
-  Text,
-  Button,
-  IconButton,
-  Card,
-} from "react-native-paper";
 
 import Slider from "@react-native-community/slider";
 
@@ -50,7 +43,16 @@ const deskImages = {
   oakProductivity: require("./assets/aok.png"),
 };
 
-import { ScrollView } from "react-native"; // <- ajoute ça en haut si pas déjà
+import {
+  Provider as PaperProvider,
+  Appbar,
+  Text,
+  Button,
+  IconButton,
+  Card,
+  TextInput,
+  HelperText,
+} from "react-native-paper";
 
 function HomeScreen() {
   const PRODUCTS = [
@@ -478,11 +480,13 @@ function CartScreen() {
                   backgroundColor: "#5B6CFF",
                 }}
                 contentStyle={{ height: 52 }}
-                onPress={() => alert("Paiement (démo)")}
+                onPress={() =>
+                  navigationRef.isReady() &&
+                  navigationRef.navigate("Payment", { total })
+                }
               >
                 Checkout
               </Button>
-
               <Button
                 mode="outlined"
                 style={{
@@ -493,12 +497,204 @@ function CartScreen() {
                 textColor={theme.colors.text}
                 onPress={() => dispatch({ type: "CLEAR" })}
               >
-                Vider le panier
+                Clear cart
               </Button>
             </Card.Content>
           </Card>
         </>
       )}
+    </ScrollView>
+  );
+}
+
+function PaymentScreen({ route }) {
+  const total = route?.params?.total ?? 0;
+
+  const [name, setName] = React.useState("");
+  const [card, setCard] = React.useState("");
+  const [expiry, setExpiry] = React.useState("");
+  const [cvc, setCvc] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
+
+  const digitsOnly = (s) => (s || "").replace(/\D/g, "");
+
+  const formatCard = (value) => {
+    const d = digitsOnly(value).slice(0, 16);
+    return d.replace(/(.{4})/g, "$1 ").trim();
+  };
+
+  const formatExpiry = (value) => {
+    const d = digitsOnly(value).slice(0, 4);
+    if (d.length <= 2) return d;
+    return `${d.slice(0, 2)}/${d.slice(2)}`;
+  };
+
+  const isValidCard = digitsOnly(card).length === 16;
+  const isValidName = name.trim().length >= 3;
+
+  const isValidExpiry = (() => {
+    const v = expiry.trim();
+    if (!/^\d{2}\/\d{2}$/.test(v)) return false;
+    const [mmStr, yyStr] = v.split("/");
+    const mm = parseInt(mmStr, 10);
+    const yy = parseInt(yyStr, 10);
+    if (mm < 1 || mm > 12) return false;
+    // validation simple: date pas trop absurde
+    if (yy < 0 || yy > 99) return false;
+    return true;
+  })();
+
+  const isValidCvc = (() => {
+    const d = digitsOnly(cvc);
+    return d.length === 3 || d.length === 4;
+  })();
+
+  const canPay = isValidName && isValidCard && isValidExpiry && isValidCvc;
+
+  const onPay = () => {
+    setSubmitted(true);
+    if (!canPay) return;
+    // Démo : on "valide" et on retourne au panier (ou Home)
+    alert("Payment successful (demo) ✅");
+    navigationRef.isReady() && navigationRef.navigate("Home");
+  };
+
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 28 }}
+    >
+      <View style={styles.controlHeader}>
+        <Text style={styles.controlTitle}>Visa Checkout</Text>
+        <Text style={styles.paySubtitle}>Secure payment • Demo form</Text>
+      </View>
+
+      {/* Carte visuelle */}
+      <View style={styles.visaCard}>
+        <View style={styles.visaCardTop}>
+          <Text style={styles.visaChip}>◼︎◼︎</Text>
+          <Text style={styles.visaBrand}>VISA</Text>
+        </View>
+
+        <Text style={styles.visaNumberPreview}>
+          {formatCard(card) || "•••• •••• •••• ••••"}
+        </Text>
+
+        <View style={styles.visaCardBottom}>
+          <View>
+            <Text style={styles.visaLabel}>CARDHOLDER</Text>
+            <Text style={styles.visaValue}>{name.trim() || "YOUR NAME"}</Text>
+          </View>
+          <View>
+            <Text style={styles.visaLabel}>EXPIRES</Text>
+            <Text style={styles.visaValue}>{expiry || "MM/YY"}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Form */}
+      <Card style={styles.detailsCard} mode="contained">
+        <Card.Content>
+          <Text style={styles.detailsSectionTitle}>Card details</Text>
+
+          <TextInput
+            mode="outlined"
+            label="Cardholder name"
+            value={name}
+            onChangeText={setName}
+            style={styles.payInput}
+            textColor="white"
+            outlineColor="rgba(255,255,255,0.18)"
+            activeOutlineColor="#6CF0FF"
+          />
+          <HelperText type="error" visible={submitted && !isValidName}>
+            Enter a valid name.
+          </HelperText>
+
+          <TextInput
+            mode="outlined"
+            label="Card number"
+            keyboardType="number-pad"
+            value={card}
+            onChangeText={(v) => setCard(formatCard(v))}
+            style={styles.payInput}
+            textColor="white"
+            outlineColor="rgba(255,255,255,0.18)"
+            activeOutlineColor="#6CF0FF"
+            placeholder="1234 5678 9012 3456"
+          />
+          <HelperText type="error" visible={submitted && !isValidCard}>
+            Card number must be 16 digits.
+          </HelperText>
+
+          <View style={styles.payRow}>
+            <View style={{ flex: 1 }}>
+              <TextInput
+                mode="outlined"
+                label="Expiry (MM/YY)"
+                keyboardType="number-pad"
+                value={expiry}
+                onChangeText={(v) => setExpiry(formatExpiry(v))}
+                style={styles.payInput}
+                textColor="white"
+                outlineColor="rgba(255,255,255,0.18)"
+                activeOutlineColor="#6CF0FF"
+                placeholder="MM/YY"
+              />
+              <HelperText type="error" visible={submitted && !isValidExpiry}>
+                Use MM/YY (ex: 09/27).
+              </HelperText>
+            </View>
+
+            <View style={{ width: 12 }} />
+
+            <View style={{ width: 120 }}>
+              <TextInput
+                mode="outlined"
+                label="CVC"
+                keyboardType="number-pad"
+                value={cvc}
+                onChangeText={(v) => setCvc(digitsOnly(v).slice(0, 4))}
+                style={styles.payInput}
+                textColor="white"
+                outlineColor="rgba(255,255,255,0.18)"
+                activeOutlineColor="#6CF0FF"
+                placeholder="123"
+              />
+              <HelperText type="error" visible={submitted && !isValidCvc}>
+                3–4 digits.
+              </HelperText>
+            </View>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Total</Text>
+            <Text style={styles.summaryValue}>${total}</Text>
+          </View>
+
+          <Button
+            mode="contained"
+            onPress={onPay}
+            disabled={!canPay}
+            style={[styles.payButton, { opacity: canPay ? 1 : 0.55 }]}
+            contentStyle={{ height: 54 }}
+            labelStyle={{ fontWeight: "900", letterSpacing: 1.2 }}
+          >
+            PAY NOW
+          </Button>
+
+          <Button
+            mode="outlined"
+            onPress={() =>
+              navigationRef.isReady() && navigationRef.navigate("Cart")
+            }
+            style={styles.payBackBtn}
+            textColor={theme.colors.text}
+          >
+            Back to cart
+          </Button>
+        </Card.Content>
+      </Card>
     </ScrollView>
   );
 }
@@ -637,6 +833,7 @@ export default function App() {
                 name="ProductDetails"
                 component={ProductDetailsScreen}
               />
+              <Tab.Screen name="Payment" component={PaymentScreen} />
             </Tab.Navigator>
           </NavigationContainer>
         </SafeAreaView>
@@ -1235,5 +1432,94 @@ const styles = StyleSheet.create({
     color: "#6CF0FF",
     fontWeight: "900",
     fontSize: 18,
+  },
+
+  paySubtitle: {
+    marginTop: 6,
+    color: "rgba(255,255,255,0.60)",
+    fontWeight: "700",
+  },
+
+  visaCard: {
+    marginTop: 10,
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "rgba(91,108,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(108,240,255,0.22)",
+    shadowColor: "#6CF0FF",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 3,
+  },
+
+  visaCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  visaChip: {
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
+
+  visaBrand: {
+    color: "#6CF0FF",
+    fontWeight: "900",
+    letterSpacing: 2,
+    fontSize: 16,
+  },
+
+  visaNumberPreview: {
+    marginTop: 18,
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
+
+  visaCardBottom: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  visaLabel: {
+    color: "rgba(255,255,255,0.55)",
+    fontWeight: "900",
+    fontSize: 10,
+    letterSpacing: 1.2,
+  },
+
+  visaValue: {
+    marginTop: 4,
+    color: "rgba(255,255,255,0.90)",
+    fontWeight: "900",
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+
+  payInput: {
+    marginTop: 12,
+    backgroundColor: "rgba(0,0,0,0.18)",
+  },
+
+  payRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+
+  payButton: {
+    marginTop: 14,
+    borderRadius: 16,
+    backgroundColor: "#5B6CFF",
+  },
+
+  payBackBtn: {
+    marginTop: 10,
+    borderRadius: 16,
+    borderColor: "rgba(255,255,255,0.25)",
   },
 });
