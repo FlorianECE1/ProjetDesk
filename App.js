@@ -551,6 +551,7 @@ function PaymentScreen({ route }) {
     if (!canPay) return;
     // Démo : on "valide" et on retourne au panier (ou Home)
     alert("Payment successful (demo) ✅");
+    dispatch({ type: "CLEAR" });
     navigationRef.isReady() && navigationRef.navigate("Home");
   };
 
