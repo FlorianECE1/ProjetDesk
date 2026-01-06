@@ -604,10 +604,11 @@ function PaymentScreen({ route }) {
             label="Cardholder name"
             value={name}
             onChangeText={setName}
-            style={styles.payInput}
+            style={{ marginTop: 12 }}
             textColor="white"
             outlineColor="rgba(255,255,255,0.18)"
             activeOutlineColor="#6CF0FF"
+            dense
           />
           <HelperText type="error" visible={submitted && !isValidName}>
             Enter a valid name.
@@ -619,11 +620,11 @@ function PaymentScreen({ route }) {
             keyboardType="number-pad"
             value={card}
             onChangeText={(v) => setCard(formatCard(v))}
-            style={styles.payInput}
+            style={{ marginTop: 12 }}
             textColor="white"
             outlineColor="rgba(255,255,255,0.18)"
             activeOutlineColor="#6CF0FF"
-            placeholder="1234 5678 9012 3456"
+            dense
           />
           <HelperText type="error" visible={submitted && !isValidCard}>
             Card number must be 16 digits.
@@ -637,11 +638,11 @@ function PaymentScreen({ route }) {
                 keyboardType="number-pad"
                 value={expiry}
                 onChangeText={(v) => setExpiry(formatExpiry(v))}
-                style={styles.payInput}
+                style={{ marginTop: 12 }}
                 textColor="white"
                 outlineColor="rgba(255,255,255,0.18)"
                 activeOutlineColor="#6CF0FF"
-                placeholder="MM/YY"
+                dense
               />
               <HelperText type="error" visible={submitted && !isValidExpiry}>
                 Use MM/YY (ex: 09/27).
@@ -657,11 +658,11 @@ function PaymentScreen({ route }) {
                 keyboardType="number-pad"
                 value={cvc}
                 onChangeText={(v) => setCvc(digitsOnly(v).slice(0, 4))}
-                style={styles.payInput}
+                style={{ marginTop: 12 }}
                 textColor="white"
                 outlineColor="rgba(255,255,255,0.18)"
                 activeOutlineColor="#6CF0FF"
-                placeholder="123"
+                dense
               />
               <HelperText type="error" visible={submitted && !isValidCvc}>
                 3–4 digits.
@@ -702,18 +703,195 @@ function PaymentScreen({ route }) {
 }
 
 function AccountScreen() {
+  const { auth, setAuth } = React.useContext(AuthContext);
+  const [mode, setMode] = React.useState("login"); // 'login' or 'register'
+
+  // login form
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  // register form
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [regEmail, setRegEmail] = React.useState("");
+  const [regPassword, setRegPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+
+  const onRegister = () => {
+    setError("");
+    if (!firstName || !lastName || !regEmail || !regPassword) {
+      setError("Please fill all fields.");
+      return;
+    }
+    const user = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone.trim(),
+      email: regEmail.trim(),
+      password: regPassword,
+    };
+    // Save registered user and sign in
+    setAuth({ user, registered: user });
+  };
+
+  const onLogin = () => {
+    setError("");
+    const stored = auth.registered;
+    if (!stored) {
+      setError("No account found. Please register first.");
+      return;
+    }
+    if (stored.email !== email.trim() || stored.password !== password) {
+      setError("Invalid credentials.");
+      return;
+    }
+    setAuth({ ...auth, user: stored });
+  };
+
+  const onLogout = () => setAuth({ ...auth, user: null });
+
+  if (auth.user) {
+    const u = auth.user;
+    return (
+      <View style={styles.screen}>
+        <View style={styles.simpleCard}>
+          <Text style={styles.cardTitle}>My profile</Text>
+          <Text style={styles.cardSub}>Your personal information</Text>
+
+          <View style={{ marginTop: 12 }}>
+            <Text style={{ color: "rgba(255,255,255,0.9)", fontWeight: "800" }}>
+              {u.firstName} {u.lastName}
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
+              Phone: {u.phone || "—"}
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
+              Email: {u.email}
+            </Text>
+          </View>
+
+          <Button mode="contained" onPress={onLogout} style={{ marginTop: 18 }}>
+            Log out
+          </Button>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.simpleCard}>
         <Text style={styles.cardTitle}>Account</Text>
-        <Text style={styles.cardSub}>User Account Area.</Text>
+
+        <View style={{ flexDirection: "row", marginTop: 12 }}>
+          <Button
+            mode={mode === "login" ? "contained" : "outlined"}
+            onPress={() => setMode("login")}
+            style={{ marginRight: 8 }}
+          >
+            Login
+          </Button>
+          <Button
+            mode={mode === "register" ? "contained" : "outlined"}
+            onPress={() => setMode("register")}
+          >
+            Register
+          </Button>
+        </View>
+
+        {mode === "login" ? (
+          <View style={{ marginTop: 12 }}>
+            <TextInput
+              mode="outlined"
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              style={{ marginTop: 8 }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              textColor="white"
+            />
+            <TextInput
+              mode="outlined"
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              style={{ marginTop: 8 }}
+              secureTextEntry
+              textColor="white"
+            />
+            {error ? <HelperText type="error">{error}</HelperText> : null}
+            <Button
+              mode="contained"
+              onPress={onLogin}
+              style={{ marginTop: 12 }}
+            >
+              Sign in
+            </Button>
+          </View>
+        ) : (
+          <View style={{ marginTop: 12 }}>
+            <TextInput
+              mode="outlined"
+              label="First name"
+              value={firstName}
+              onChangeText={setFirstName}
+              textColor="white"
+            />
+            <TextInput
+              mode="outlined"
+              label="Last name"
+              value={lastName}
+              onChangeText={setLastName}
+              style={{ marginTop: 8 }}
+              textColor="white"
+            />
+            <TextInput
+              mode="outlined"
+              label="Phone"
+              value={phone}
+              onChangeText={(v) => setPhone(v.replace(/\D/g, ""))}
+              style={{ marginTop: 8 }}
+              keyboardType="phone-pad"
+              textColor="white"
+            />
+            <TextInput
+              mode="outlined"
+              label="Email"
+              value={regEmail}
+              onChangeText={setRegEmail}
+              style={{ marginTop: 8 }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              textColor="white"
+            />
+            <TextInput
+              mode="outlined"
+              label="Password"
+              value={regPassword}
+              onChangeText={setRegPassword}
+              style={{ marginTop: 8 }}
+              secureTextEntry
+              textColor="white"
+            />
+            {error ? <HelperText type="error">{error}</HelperText> : null}
+            <Button
+              mode="contained"
+              onPress={onRegister}
+              style={{ marginTop: 12 }}
+            >
+              Create account
+            </Button>
+          </View>
+        )}
 
         <Button
-          mode="contained"
+          mode="outlined"
           onPress={() =>
             navigationRef.isReady() && navigationRef.navigate("Home")
           }
           style={{ marginTop: 14 }}
+          textColor={theme.colors.text}
         >
           Go Home
         </Button>
@@ -747,93 +925,97 @@ export default function App() {
   const [routeName, setRouteName] = React.useState("Home");
   const [cartState, dispatch] = React.useReducer(cartReducer, { items: {} });
 
+  const [auth, setAuth] = React.useState({ user: null, registered: null });
+
   return (
-    <CartContext.Provider value={{ cartState, dispatch }}>
-      <PaperProvider theme={theme}>
-        <SafeAreaView style={styles.safeArea}>
-          <StatusBar barStyle="light-content" />
+    <AuthContext.Provider value={{ auth, setAuth }}>
+      <CartContext.Provider value={{ cartState, dispatch }}>
+        <PaperProvider theme={theme}>
+          <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="light-content" />
 
-          {/* ✅ Appbar FIXE - le bouton paramètres n’apparaît que sur Home */}
-          <Appbar.Header style={styles.appbarHeader}>
-            <View style={styles.appbarLeft}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigationRef.isReady() && navigationRef.navigate("Home")
-                }
-                style={styles.logoButton}
-              >
-                <Image
-                  source={logoSource}
-                  style={styles.appLogo}
-                  resizeMode="contain"
+            {/* ✅ Appbar FIXE - le bouton paramètres n’apparaît que sur Home */}
+            <Appbar.Header style={styles.appbarHeader}>
+              <View style={styles.appbarLeft}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigationRef.isReady() && navigationRef.navigate("Home")
+                  }
+                  style={styles.logoButton}
+                >
+                  <Image
+                    source={logoSource}
+                    style={styles.appLogo}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.appbarRight}>
+                {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
+
+                <Appbar.Action
+                  icon="tune-variant"
+                  onPress={() =>
+                    navigationRef.isReady() &&
+                    navigationRef.navigate("DeskControl")
+                  }
                 />
-              </TouchableOpacity>
-            </View>
 
-            <View style={styles.appbarRight}>
-              {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
+                <Appbar.Action
+                  icon="cart"
+                  onPress={() =>
+                    navigationRef.isReady() && navigationRef.navigate("Cart")
+                  }
+                />
+                <Appbar.Action
+                  icon="account"
+                  onPress={() =>
+                    navigationRef.isReady() && navigationRef.navigate("Account")
+                  }
+                />
+                <Appbar.Action
+                  icon="bell"
+                  onPress={() =>
+                    navigationRef.isReady() &&
+                    navigationRef.navigate("Notifications")
+                  }
+                />
+              </View>
+            </Appbar.Header>
 
-              <Appbar.Action
-                icon="tune-variant"
-                onPress={() =>
-                  navigationRef.isReady() &&
-                  navigationRef.navigate("DeskControl")
-                }
-              />
-
-              <Appbar.Action
-                icon="cart"
-                onPress={() =>
-                  navigationRef.isReady() && navigationRef.navigate("Cart")
-                }
-              />
-              <Appbar.Action
-                icon="account"
-                onPress={() =>
-                  navigationRef.isReady() && navigationRef.navigate("Account")
-                }
-              />
-              <Appbar.Action
-                icon="bell"
-                onPress={() =>
-                  navigationRef.isReady() &&
-                  navigationRef.navigate("Notifications")
-                }
-              />
-            </View>
-          </Appbar.Header>
-
-          <NavigationContainer
-            ref={navigationRef}
-            onStateChange={() => {
-              const current = navigationRef.getCurrentRoute();
-              if (current?.name) setRouteName(current.name);
-            }}
-          >
-            <Tab.Navigator
-              screenOptions={{
-                headerShown: false,
-                tabBarStyle: { display: "none" },
+            <NavigationContainer
+              ref={navigationRef}
+              onStateChange={() => {
+                const current = navigationRef.getCurrentRoute();
+                if (current?.name) setRouteName(current.name);
               }}
             >
-              <Tab.Screen name="Home" component={HomeScreen} />
-              <Tab.Screen name="DeskControl" component={DeskControlScreen} />
-              <Tab.Screen name="Cart" component={CartScreen} />
-              <Tab.Screen name="Account" component={AccountScreen} />
-              <Tab.Screen
-                name="Notifications"
-                component={NotificationsScreen}
-              />
-              <Tab.Screen
-                name="ProductDetails"
-                component={ProductDetailsScreen}
-              />
-              <Tab.Screen name="Payment" component={PaymentScreen} />
-            </Tab.Navigator>
-          </NavigationContainer>
-        </SafeAreaView>
-      </PaperProvider>
-    </CartContext.Provider>
+              <Tab.Navigator
+                screenOptions={{
+                  headerShown: false,
+                  tabBarStyle: { display: "none" },
+                }}
+              >
+                <Tab.Screen name="Home" component={HomeScreen} />
+                <Tab.Screen name="DeskControl" component={DeskControlScreen} />
+                <Tab.Screen name="Cart" component={CartScreen} />
+                <Tab.Screen name="Account" component={AccountScreen} />
+                <Tab.Screen
+                  name="Notifications"
+                  component={NotificationsScreen}
+                />
+                <Tab.Screen
+                  name="ProductDetails"
+                  component={ProductDetailsScreen}
+                />
+                <Tab.Screen name="Payment" component={PaymentScreen} />
+              </Tab.Navigator>
+            </NavigationContainer>
+          </SafeAreaView>
+        </PaperProvider>
+      </CartContext.Provider>
+    </AuthContext.Provider>
   );
 }
 
@@ -902,6 +1084,9 @@ function ProductDetailsScreen({ route }) {
     </ScrollView>
   );
 }
+
+// Simple auth context (demo only)
+const AuthContext = React.createContext(null);
 
 const CartContext = React.createContext(null);
 
