@@ -1089,7 +1089,7 @@ export default function App() {
                       <Appbar.Action
                         icon="sort"
                         onPress={() =>
-                          Alert.alert("Sorting", "Choisis l'ordre", [
+                          Alert.alert("Sort", "Choose the order", [
                             {
                               text: "Ascending price",
                               onPress: () => setSortOrder("ASC"),
@@ -1099,9 +1099,30 @@ export default function App() {
                               onPress: () => setSortOrder("DESC"),
                             },
                             {
-                              text: "No sorting",
+                              text: "No sort",
                               onPress: () => setSortOrder("NONE"),
                             },
+                            { text: "Cancel", style: "cancel" },
+                          ])
+                        }
+                      />
+
+                      <Appbar.Action
+                        icon="filter-variant"
+                        iconColor="rgba(255,255,255,0.90)"
+                        size={28}
+                        onPress={() =>
+                          Alert.alert("Filter", "Choose a category", [
+                            { text: "All", onPress: () => setFilter("ALL") },
+                            {
+                              text: "Gaming",
+                              onPress: () => setFilter("GAMING"),
+                            },
+                            {
+                              text: "Art Deco",
+                              onPress: () => setFilter("ARTDECO"),
+                            },
+                            { text: "Work", onPress: () => setFilter("WORK") },
                             { text: "Cancel", style: "cancel" },
                           ])
                         }
