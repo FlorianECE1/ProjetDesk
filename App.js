@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Alert,
 } from "react-native";
 import theme from "./src/theme";
 
@@ -53,9 +54,12 @@ import {
   Card,
   TextInput,
   HelperText,
+  Menu,
 } from "react-native-paper";
 
 function HomeScreen() {
+  const { sortOrder } = React.useContext(SortContext);
+  const { filter } = React.useContext(FilterContext);
   const PRODUCTS = [
     // --- GAMING
     {
@@ -208,14 +212,38 @@ function HomeScreen() {
     },
   ];
 
+  const filteredProducts = React.useMemo(() => {
+    const map = {
+      GAMING: "Gaming Desks",
+      ARTDECO: "Art Deco Desks",
+      WORK: "Work Desks",
+    };
+
+    // 1) Filtre
+    let list = PRODUCTS;
+    if (filter !== "ALL") {
+      list = PRODUCTS.filter((p) => p.category === map[filter]);
+    }
+
+    // 2) Tri
+    const sorted = [...list];
+    if (sortOrder === "ASC") {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (sortOrder === "DESC") {
+      sorted.sort((a, b) => b.price - a.price);
+    }
+
+    return sorted;
+  }, [filter, sortOrder]);
+
   const grouped = React.useMemo(() => {
     const map = new Map();
-    for (const p of PRODUCTS) {
+    for (const p of filteredProducts) {
       if (!map.has(p.category)) map.set(p.category, []);
       map.get(p.category).push(p);
     }
-    return Array.from(map.entries()); // [ [category, products], ... ]
-  }, []);
+    return Array.from(map.entries());
+  }, [filteredProducts]);
 
   const ProductCard = ({ item }) => (
     <View style={styles.productCard}>
@@ -1020,105 +1048,138 @@ export default function App() {
     items: [],
   });
 
+  const [filter, setFilter] = React.useState("ALL");
+  const [sortOrder, setSortOrder] = React.useState("NONE"); // NONE | ASC | DESC
+  const [filterMenuVisible, setFilterMenuVisible] = React.useState(false);
+
   return (
-    <AuthContext.Provider value={{ auth, setAuth }}>
-      <CartContext.Provider value={{ cartState, dispatch }}>
-        <NotificationsContext.Provider value={{ notifState, notifDispatch }}>
-          <PaperProvider theme={theme}>
-            <SafeAreaView style={styles.safeArea}>
-              <StatusBar barStyle="light-content" />
+    <FilterContext.Provider value={{ filter, setFilter }}>
+      <SortContext.Provider value={{ sortOrder, setSortOrder }}>
+        <AuthContext.Provider value={{ auth, setAuth }}>
+          <CartContext.Provider value={{ cartState, dispatch }}>
+            <NotificationsContext.Provider
+              value={{ notifState, notifDispatch }}
+            >
+              <PaperProvider theme={theme}>
+                <SafeAreaView style={styles.safeArea}>
+                  <StatusBar barStyle="light-content" />
 
-              {/* ✅ Appbar FIXE - le bouton paramètres n’apparaît que sur Home */}
-              <Appbar.Header style={styles.appbarHeader}>
-                <View style={styles.appbarLeft}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigationRef.isReady() && navigationRef.navigate("Home")
-                    }
-                    style={styles.logoButton}
+                  <Appbar.Header style={styles.appbarHeader}>
+                    <View style={styles.appbarHeader}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Home")
+                        }
+                        style={styles.logoButton}
+                      >
+                        <Image
+                          source={logoSource}
+                          style={[styles.appLogo, { borderRadius: 10 }]}
+                          resizeMode="contain"
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.appbarRight}>
+                      {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
+
+                      {/* TRI */}
+                      <Appbar.Action
+                        icon="sort"
+                        onPress={() =>
+                          Alert.alert("Sorting", "Choisis l'ordre", [
+                            {
+                              text: "Ascending price",
+                              onPress: () => setSortOrder("ASC"),
+                            },
+                            {
+                              text: "Descending price",
+                              onPress: () => setSortOrder("DESC"),
+                            },
+                            {
+                              text: "No sorting",
+                              onPress: () => setSortOrder("NONE"),
+                            },
+                            { text: "Cancel", style: "cancel" },
+                          ])
+                        }
+                      />
+
+                      <Appbar.Action
+                        icon="tune-variant"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("DeskControl")
+                        }
+                      />
+
+                      <Appbar.Action
+                        icon="cart"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Cart")
+                        }
+                      />
+                      <Appbar.Action
+                        icon="account"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Account")
+                        }
+                      />
+                      <Appbar.Action
+                        icon="bell"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Notifications")
+                        }
+                      />
+                    </View>
+                  </Appbar.Header>
+
+                  <NavigationContainer
+                    ref={navigationRef}
+                    onStateChange={() => {
+                      const current = navigationRef.getCurrentRoute();
+                      if (current?.name) setRouteName(current.name);
+                    }}
                   >
-                    <Image
-                      source={logoSource}
-                      style={[styles.appLogo, { borderRadius: 10 }]}
-                      resizeMode="contain"
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.appbarRight}>
-                  {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
-
-                  <Appbar.Action
-                    icon="tune-variant"
-                    onPress={() =>
-                      navigationRef.isReady() &&
-                      navigationRef.navigate("DeskControl")
-                    }
-                  />
-
-                  <Appbar.Action
-                    icon="cart"
-                    onPress={() =>
-                      navigationRef.isReady() && navigationRef.navigate("Cart")
-                    }
-                  />
-                  <Appbar.Action
-                    icon="account"
-                    onPress={() =>
-                      navigationRef.isReady() &&
-                      navigationRef.navigate("Account")
-                    }
-                  />
-                  <Appbar.Action
-                    icon="bell"
-                    onPress={() =>
-                      navigationRef.isReady() &&
-                      navigationRef.navigate("Notifications")
-                    }
-                  />
-                </View>
-              </Appbar.Header>
-
-              <NavigationContainer
-                ref={navigationRef}
-                onStateChange={() => {
-                  const current = navigationRef.getCurrentRoute();
-                  if (current?.name) setRouteName(current.name);
-                }}
-              >
-                <Tab.Navigator
-                  screenOptions={{
-                    headerShown: false,
-                    tabBarStyle: { display: "none" },
-                  }}
-                >
-                  <Tab.Screen name="Home" component={HomeScreen} />
-                  <Tab.Screen
-                    name="DeskControl"
-                    component={DeskControlScreen}
-                  />
-                  <Tab.Screen name="Cart" component={CartScreen} />
-                  <Tab.Screen name="Account" component={AccountScreen} />
-                  <Tab.Screen
-                    name="Notifications"
-                    component={NotificationsScreen}
-                  />
-                  <Tab.Screen
-                    name="ProductDetails"
-                    component={ProductDetailsScreen}
-                  />
-                  <Tab.Screen
-                    name="OrderConfirmation"
-                    component={OrderConfirmationScreen}
-                  />
-                  <Tab.Screen name="Payment" component={PaymentScreen} />
-                </Tab.Navigator>
-              </NavigationContainer>
-            </SafeAreaView>
-          </PaperProvider>
-        </NotificationsContext.Provider>
-      </CartContext.Provider>
-    </AuthContext.Provider>
+                    <Tab.Navigator
+                      screenOptions={{
+                        headerShown: false,
+                        tabBarStyle: { display: "none" },
+                      }}
+                    >
+                      <Tab.Screen name="Home" component={HomeScreen} />
+                      <Tab.Screen
+                        name="DeskControl"
+                        component={DeskControlScreen}
+                      />
+                      <Tab.Screen name="Cart" component={CartScreen} />
+                      <Tab.Screen name="Account" component={AccountScreen} />
+                      <Tab.Screen
+                        name="Notifications"
+                        component={NotificationsScreen}
+                      />
+                      <Tab.Screen
+                        name="ProductDetails"
+                        component={ProductDetailsScreen}
+                      />
+                      <Tab.Screen
+                        name="OrderConfirmation"
+                        component={OrderConfirmationScreen}
+                      />
+                      <Tab.Screen name="Payment" component={PaymentScreen} />
+                    </Tab.Navigator>
+                  </NavigationContainer>
+                </SafeAreaView>
+              </PaperProvider>
+            </NotificationsContext.Provider>
+          </CartContext.Provider>
+        </AuthContext.Provider>
+      </SortContext.Provider>
+    </FilterContext.Provider>
   );
 }
 
@@ -1194,6 +1255,9 @@ const AuthContext = React.createContext(null);
 const CartContext = React.createContext(null);
 
 const NotificationsContext = React.createContext(null);
+
+const FilterContext = React.createContext(null);
+const SortContext = React.createContext(null);
 
 function notificationsReducer(state, action) {
   switch (action.type) {
@@ -1279,10 +1343,18 @@ const styles = StyleSheet.create({
     elevation: 0,
     paddingBottom: 6,
   },
+  topBarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+  },
+
   appbarLeft: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
     flex: 1,
+    height: 56,
   },
   appbarRight: {
     flexDirection: "row",
