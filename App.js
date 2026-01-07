@@ -1041,7 +1041,7 @@ function NotificationsScreen() {
     </ScrollView>
   );
 }
-
+//caca
 export default function App() {
   const [routeName, setRouteName] = React.useState("Home");
   const [filter, setFilter] = React.useState("ALL"); 
