@@ -1066,7 +1066,7 @@ export default function App() {
                   <StatusBar barStyle="light-content" />
 
                   <Appbar.Header style={styles.appbarHeader}>
-                    <View style={styles.appbarHeader}>
+                    <View style={styles.appbarLeft}>
                       <TouchableOpacity
                         onPress={() =>
                           navigationRef.isReady() &&
