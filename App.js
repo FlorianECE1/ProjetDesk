@@ -1624,7 +1624,7 @@ const styles = StyleSheet.create({
 
   visaCard: {
     marginTop: 10,
-    borderRadius: 22,
+    borderRadius: 1,
     padding: 16,
     backgroundColor: "rgba(91,108,255,0.16)",
     borderWidth: 0,
