@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Alert,
 } from "react-native";
 import theme from "./src/theme";
+import styles from "./src/styles";
 
 import Slider from "@react-native-community/slider";
 
@@ -53,9 +55,12 @@ import {
   Card,
   TextInput,
   HelperText,
+  Menu,
 } from "react-native-paper";
 
 function HomeScreen() {
+  const { sortOrder } = React.useContext(SortContext);
+  const { filter } = React.useContext(FilterContext);
   const PRODUCTS = [
     // --- GAMING
     {
@@ -208,14 +213,38 @@ function HomeScreen() {
     },
   ];
 
+  const filteredProducts = React.useMemo(() => {
+    const map = {
+      GAMING: "Gaming Desks",
+      ARTDECO: "Art Deco Desks",
+      WORK: "Work Desks",
+    };
+
+    // 1) Filtre
+    let list = PRODUCTS;
+    if (filter !== "ALL") {
+      list = PRODUCTS.filter((p) => p.category === map[filter]);
+    }
+
+    // 2) Tri
+    const sorted = [...list];
+    if (sortOrder === "ASC") {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (sortOrder === "DESC") {
+      sorted.sort((a, b) => b.price - a.price);
+    }
+
+    return sorted;
+  }, [filter, sortOrder]);
+
   const grouped = React.useMemo(() => {
     const map = new Map();
-    for (const p of PRODUCTS) {
+    for (const p of filteredProducts) {
       if (!map.has(p.category)) map.set(p.category, []);
       map.get(p.category).push(p);
     }
-    return Array.from(map.entries()); // [ [category, products], ... ]
-  }, []);
+    return Array.from(map.entries());
+  }, [filteredProducts]);
 
   const ProductCard = ({ item }) => (
     <View style={styles.productCard}>
@@ -511,6 +540,9 @@ function CartScreen() {
 function PaymentScreen({ route }) {
   const total = route?.params?.total ?? 0;
 
+  const { dispatch } = React.useContext(CartContext);
+  const { notifDispatch } = React.useContext(NotificationsContext);
+
   const [name, setName] = React.useState("");
   const [card, setCard] = React.useState("");
   const [expiry, setExpiry] = React.useState("");
@@ -555,10 +587,26 @@ function PaymentScreen({ route }) {
   const onPay = () => {
     setSubmitted(true);
     if (!canPay) return;
-    // Démo : on "valide" et on retourne au panier (ou Home)
-    alert("Payment successful (demo) ✅");
+
+    const orderId = `101214-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    // Ajoute une notification
+    notifDispatch({
+      type: "ADD_NOTIFICATION",
+      notification: {
+        id: Date.now().toString(),
+        title: "Order confirmed",
+        message: `Your order ${orderId} has been confirmed. Total paid: $${total}.`,
+        date: new Date().toISOString(),
+      },
+    });
+
+    // Vide le panier
     dispatch({ type: "CLEAR" });
-    navigationRef.isReady() && navigationRef.navigate("Home");
+
+    //  Va à la page confirmation
+    navigationRef.isReady() &&
+      navigationRef.navigate("OrderConfirmation", { orderId, total });
   };
 
   return (
@@ -695,6 +743,54 @@ function PaymentScreen({ route }) {
             textColor={theme.colors.text}
           >
             Back to cart
+          </Button>
+        </Card.Content>
+      </Card>
+    </ScrollView>
+  );
+}
+
+function OrderConfirmationScreen({ route }) {
+  const { orderId, total } = route?.params ?? { orderId: "N/A", total: 0 };
+
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 28 }}
+    >
+      <View style={styles.controlHeader}>
+        <Text style={styles.controlTitle}>Order confirmed </Text>
+        <Text style={styles.paySubtitle}>Thank you for your purchase.</Text>
+      </View>
+
+      <Card style={styles.detailsCard} mode="contained">
+        <Card.Content>
+          <Text style={styles.detailsSectionTitle}>Order number</Text>
+          <Text style={styles.detailsText}>{orderId}</Text>
+
+          <View style={{ height: 14 }} />
+
+          <Text style={styles.detailsSectionTitle}>Paid total</Text>
+          <Text
+            style={[
+              styles.detailsText,
+              { fontWeight: "900", color: "#6CF0FF" },
+            ]}
+          >
+            ${total}
+          </Text>
+
+          <View style={{ height: 18 }} />
+
+          <Button
+            mode="contained"
+            style={{ borderRadius: 16, backgroundColor: "#5B6CFF" }}
+            contentStyle={{ height: 52 }}
+            onPress={() =>
+              navigationRef.isReady() && navigationRef.navigate("Home")
+            }
+          >
+            Continue shopping
           </Button>
         </Card.Content>
       </Card>
@@ -901,23 +997,45 @@ function AccountScreen() {
 }
 
 function NotificationsScreen() {
-  return (
-    <View style={styles.screen}>
-      <View style={styles.simpleCard}>
-        <Text style={styles.cardTitle}>Notifications</Text>
-        <Text style={styles.cardSub}>None notification.</Text>
+  const { notifState, notifDispatch } = React.useContext(NotificationsContext);
 
-        <Button
-          mode="contained"
-          onPress={() =>
-            navigationRef.isReady() && navigationRef.navigate("Home")
-          }
-          style={{ marginTop: 14 }}
-        >
-          Go Home
-        </Button>
-      </View>
-    </View>
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 30 }}
+    >
+      <Text style={styles.controlTitle}>Notifications</Text>
+
+      {notifState.items.length === 0 ? (
+        <View style={styles.simpleCard}>
+          <Text style={styles.cardSub}>No notifications.</Text>
+        </View>
+      ) : (
+        <>
+          {notifState.items.map((n) => (
+            <Card key={n.id} style={styles.cartItemCard} mode="contained">
+              <Card.Content>
+                <Text style={styles.cardTitle}>{n.title}</Text>
+                <Text style={styles.cardSub}>{n.message}</Text>
+              </Card.Content>
+            </Card>
+          ))}
+
+          <Button
+            mode="outlined"
+            style={{
+              marginTop: 12,
+              borderRadius: 16,
+              borderColor: "rgba(255,255,255,0.25)",
+            }}
+            textColor={theme.colors.text}
+            onPress={() => notifDispatch({ type: "CLEAR_NOTIFICATIONS" })}
+          >
+            Clear notifications
+          </Button>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
@@ -927,95 +1045,163 @@ export default function App() {
 
   const [auth, setAuth] = React.useState({ user: null, registered: null });
 
+  const [notifState, notifDispatch] = React.useReducer(notificationsReducer, {
+    items: [],
+  });
+
+  const [filter, setFilter] = React.useState("ALL");
+  const [sortOrder, setSortOrder] = React.useState("NONE"); // NONE | ASC | DESC
+  const [filterMenuVisible, setFilterMenuVisible] = React.useState(false);
+
   return (
-    <AuthContext.Provider value={{ auth, setAuth }}>
-      <CartContext.Provider value={{ cartState, dispatch }}>
-        <PaperProvider theme={theme}>
-          <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="light-content" />
-
-            {/* ✅ Appbar FIXE - le bouton paramètres n’apparaît que sur Home */}
-            <Appbar.Header style={styles.appbarHeader}>
-              <View style={styles.appbarLeft}>
-                <TouchableOpacity
-                  onPress={() =>
-                    navigationRef.isReady() && navigationRef.navigate("Home")
-                  }
-                  style={styles.logoButton}
-                >
-                  <Image
-                    source={logoSource}
-                    style={[styles.appLogo, { borderRadius: 10 }]}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.appbarRight}>
-                {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
-
-                <Appbar.Action
-                  icon="tune-variant"
-                  onPress={() =>
-                    navigationRef.isReady() &&
-                    navigationRef.navigate("DeskControl")
-                  }
-                />
-
-                <Appbar.Action
-                  icon="cart"
-                  onPress={() =>
-                    navigationRef.isReady() && navigationRef.navigate("Cart")
-                  }
-                />
-                <Appbar.Action
-                  icon="account"
-                  onPress={() =>
-                    navigationRef.isReady() && navigationRef.navigate("Account")
-                  }
-                />
-                <Appbar.Action
-                  icon="bell"
-                  onPress={() =>
-                    navigationRef.isReady() &&
-                    navigationRef.navigate("Notifications")
-                  }
-                />
-              </View>
-            </Appbar.Header>
-
-            <NavigationContainer
-              ref={navigationRef}
-              onStateChange={() => {
-                const current = navigationRef.getCurrentRoute();
-                if (current?.name) setRouteName(current.name);
-              }}
+    <FilterContext.Provider value={{ filter, setFilter }}>
+      <SortContext.Provider value={{ sortOrder, setSortOrder }}>
+        <AuthContext.Provider value={{ auth, setAuth }}>
+          <CartContext.Provider value={{ cartState, dispatch }}>
+            <NotificationsContext.Provider
+              value={{ notifState, notifDispatch }}
             >
-              <Tab.Navigator
-                screenOptions={{
-                  headerShown: false,
-                  tabBarStyle: { display: "none" },
-                }}
-              >
-                <Tab.Screen name="Home" component={HomeScreen} />
-                <Tab.Screen name="DeskControl" component={DeskControlScreen} />
-                <Tab.Screen name="Cart" component={CartScreen} />
-                <Tab.Screen name="Account" component={AccountScreen} />
-                <Tab.Screen
-                  name="Notifications"
-                  component={NotificationsScreen}
-                />
-                <Tab.Screen
-                  name="ProductDetails"
-                  component={ProductDetailsScreen}
-                />
-                <Tab.Screen name="Payment" component={PaymentScreen} />
-              </Tab.Navigator>
-            </NavigationContainer>
-          </SafeAreaView>
-        </PaperProvider>
-      </CartContext.Provider>
-    </AuthContext.Provider>
+              <PaperProvider theme={theme}>
+                <SafeAreaView style={styles.safeArea}>
+                  <StatusBar barStyle="light-content" />
+
+                  <Appbar.Header style={styles.appbarHeader}>
+                    <View style={styles.appbarLeft}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Home")
+                        }
+                        style={styles.logoButton}
+                      >
+                        <Image
+                          source={logoSource}
+                          style={[styles.appLogo, { borderRadius: 10 }]}
+                          resizeMode="contain"
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.appbarRight}>
+                      {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
+
+                      {/* TRI */}
+                      <Appbar.Action
+                        icon="sort"
+                        onPress={() =>
+                          Alert.alert("Sort", "Choose the order", [
+                            {
+                              text: "Ascending price",
+                              onPress: () => setSortOrder("ASC"),
+                            },
+                            {
+                              text: "Descending price",
+                              onPress: () => setSortOrder("DESC"),
+                            },
+                            {
+                              text: "No sort",
+                              onPress: () => setSortOrder("NONE"),
+                            },
+                            { text: "Cancel", style: "cancel" },
+                          ])
+                        }
+                      />
+
+                      <Appbar.Action
+                        icon="filter-variant"
+                        iconColor="rgba(255,255,255,0.90)"
+                        size={28}
+                        onPress={() =>
+                          Alert.alert("Filter", "Choose a category", [
+                            { text: "All", onPress: () => setFilter("ALL") },
+                            {
+                              text: "Gaming",
+                              onPress: () => setFilter("GAMING"),
+                            },
+                            {
+                              text: "Art Deco",
+                              onPress: () => setFilter("ARTDECO"),
+                            },
+                            { text: "Work", onPress: () => setFilter("WORK") },
+                            { text: "Cancel", style: "cancel" },
+                          ])
+                        }
+                      />
+
+                      <Appbar.Action
+                        icon="tune-variant"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("DeskControl")
+                        }
+                      />
+
+                      <Appbar.Action
+                        icon="cart"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Cart")
+                        }
+                      />
+                      <Appbar.Action
+                        icon="account"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Account")
+                        }
+                      />
+                      <Appbar.Action
+                        icon="bell"
+                        onPress={() =>
+                          navigationRef.isReady() &&
+                          navigationRef.navigate("Notifications")
+                        }
+                      />
+                    </View>
+                  </Appbar.Header>
+
+                  <NavigationContainer
+                    ref={navigationRef}
+                    onStateChange={() => {
+                      const current = navigationRef.getCurrentRoute();
+                      if (current?.name) setRouteName(current.name);
+                    }}
+                  >
+                    <Tab.Navigator
+                      screenOptions={{
+                        headerShown: false,
+                        tabBarStyle: { display: "none" },
+                      }}
+                    >
+                      <Tab.Screen name="Home" component={HomeScreen} />
+                      <Tab.Screen
+                        name="DeskControl"
+                        component={DeskControlScreen}
+                      />
+                      <Tab.Screen name="Cart" component={CartScreen} />
+                      <Tab.Screen name="Account" component={AccountScreen} />
+                      <Tab.Screen
+                        name="Notifications"
+                        component={NotificationsScreen}
+                      />
+                      <Tab.Screen
+                        name="ProductDetails"
+                        component={ProductDetailsScreen}
+                      />
+                      <Tab.Screen
+                        name="OrderConfirmation"
+                        component={OrderConfirmationScreen}
+                      />
+                      <Tab.Screen name="Payment" component={PaymentScreen} />
+                    </Tab.Navigator>
+                  </NavigationContainer>
+                </SafeAreaView>
+              </PaperProvider>
+            </NotificationsContext.Provider>
+          </CartContext.Provider>
+        </AuthContext.Provider>
+      </SortContext.Provider>
+    </FilterContext.Provider>
   );
 }
 
@@ -1089,6 +1275,27 @@ function ProductDetailsScreen({ route }) {
 const AuthContext = React.createContext(null);
 
 const CartContext = React.createContext(null);
+
+const NotificationsContext = React.createContext(null);
+
+const FilterContext = React.createContext(null);
+const SortContext = React.createContext(null);
+
+function notificationsReducer(state, action) {
+  switch (action.type) {
+    case "ADD_NOTIFICATION": {
+      return {
+        ...state,
+        items: [action.notification, ...state.items],
+      };
+    }
+    case "CLEAR_NOTIFICATIONS": {
+      return { ...state, items: [] };
+    }
+    default:
+      return state;
+  }
+}
 
 function cartReducer(state, action) {
   switch (action.type) {
@@ -1624,7 +1831,7 @@ const styles = StyleSheet.create({
 
   visaCard: {
     marginTop: 10,
-    borderRadius: 1,
+    borderRadius: 22,
     padding: 16,
     backgroundColor: "rgba(91,108,255,0.16)",
     borderWidth: 0,
