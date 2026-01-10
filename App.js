@@ -289,8 +289,8 @@ function LandingScreen() {
 }
 
 function HomeScreen() {
-  const { sortOrder } = React.useContext(SortContext);
-  const { filter } = React.useContext(FilterContext);
+  const { sortOrder, setSortOrder } = React.useContext(SortContext);
+  const { filter, setFilter } = React.useContext(FilterContext);
   const PRODUCTS = [
     // --- GAMING
     {
@@ -515,6 +515,37 @@ function HomeScreen() {
           source={logoTitle}
           style={styles.brandLogoTitle}
           resizeMode="contain"
+        />
+      </View>
+
+      {/* Boutons Tri + Filtre en haut (page shopping) */}
+      <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+        <IconButton
+          icon="sort"
+          iconColor="rgba(255,255,255,0.90)"
+          size={24}
+          onPress={() =>
+            Alert.alert("Sort", "Choose the order", [
+              { text: "Ascending price", onPress: () => setSortOrder("ASC") },
+              { text: "Descending price", onPress: () => setSortOrder("DESC") },
+              { text: "No sort", onPress: () => setSortOrder("NONE") },
+              { text: "Cancel", style: "cancel" },
+            ])
+          }
+        />
+        <IconButton
+          icon="filter-variant"
+          iconColor="rgba(255,255,255,0.90)"
+          size={24}
+          onPress={() =>
+            Alert.alert("Filter", "Choose a category", [
+              { text: "All", onPress: () => setFilter("ALL") },
+              { text: "Gaming", onPress: () => setFilter("GAMING") },
+              { text: "Art Deco", onPress: () => setFilter("ARTDECO") },
+              { text: "Work", onPress: () => setFilter("WORK") },
+              { text: "Cancel", style: "cancel" },
+            ])
+          }
         />
       </View>
 
