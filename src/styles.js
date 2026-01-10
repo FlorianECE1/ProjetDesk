@@ -59,8 +59,12 @@ export default StyleSheet.create({
     marginBottom: 6,
   },
   brandLogo: {
-    width: 210,
-    height: 70,
+    width: 320,
+    height: 140,
+  },
+  brandLogoTitle: {
+    width: 320,
+    height: 120,
   },
   centerWrap: {
     flex: 1,
@@ -90,6 +94,28 @@ export default StyleSheet.create({
   heroImage: {
     width: "100%",
     height: "100%",
+  },
+
+  /* Carousel (landing) */
+  carouselWrap: {
+    width: 260,
+    height: 200,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginRight: 12,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  carouselImage: {
+    width: "100%",
+    height: "100%",
+  },
+  carouselDesc: {
+    color: "rgba(255,255,255,0.78)",
+    fontSize: 14,
+    marginHorizontal: 18,
+    marginBottom: 8,
   },
   productTitle: {
     textAlign: "center",
