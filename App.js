@@ -59,6 +59,96 @@ import {
 } from "react-native-paper";
 
 function LandingScreen() {
+  // Shared carousel index to synchronize all carousels
+  const [carouselIndex, setCarouselIndex] = React.useState(0);
+  const CAROUSEL_COUNT = 3; // each category has 3 images
+
+  // Global autoplay: advance all carousels together
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setCarouselIndex((i) => (i + 1) % CAROUSEL_COUNT);
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  const Carousel = ({ items, title, currentIndex, onIndexChange }) => {
+    const scrollRef = React.useRef(null);
+    const [containerWidth, setContainerWidth] = React.useState(null);
+    const windowWidth = Dimensions.get("window").width;
+    const gap = 12; // must match styles.carouselWrap.marginRight
+    const itemWidth = containerWidth ? containerWidth : windowWidth - 36; // fallback
+    const slideWidth = itemWidth + gap;
+
+    const n = items.length;
+    const data = [items[n - 1], ...items, items[0]]; // cloned edges for infinite loop
+
+    // When logical index (0..n-1) changes, animate to displayed index = logical+1
+    React.useEffect(() => {
+      if (!scrollRef.current || !containerWidth) return;
+      const displayed = currentIndex + 1; // account for leading clone
+      scrollRef.current.scrollTo({ x: displayed * slideWidth, animated: true });
+    }, [currentIndex, slideWidth, containerWidth]);
+
+    const handleMomentumEnd = (e) => {
+      const off = e.nativeEvent.contentOffset.x;
+      const displayed = Math.round(off / slideWidth);
+
+      if (displayed === 0) {
+        // landed on leading clone -> jump to real last
+        if (scrollRef.current)
+          scrollRef.current.scrollTo({ x: n * slideWidth, animated: false });
+        onIndexChange(n - 1);
+        return;
+      }
+
+      if (displayed === n + 1) {
+        // landed on trailing clone -> jump to real first
+        if (scrollRef.current)
+          scrollRef.current.scrollTo({ x: slideWidth, animated: false });
+        onIndexChange(0);
+        return;
+      }
+
+      // normal
+      onIndexChange(displayed - 1);
+    };
+
+    return (
+      <View
+        style={{ marginBottom: 8 }}
+        onLayout={(e) => {
+          const w = Math.max(0, e.nativeEvent.layout.width - 36); // subtract horizontal padding
+          if (w > 0 && w !== containerWidth) setContainerWidth(w);
+        }}
+      >
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={slideWidth}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleMomentumEnd}
+          contentContainerStyle={{ paddingHorizontal: 18 }}
+        >
+          {data.map((src, i) => (
+            <View key={i} style={[styles.carouselWrap, { width: itemWidth }]}>
+              <Image
+                source={src}
+                style={[
+                  styles.carouselImage,
+                  { backgroundColor: "transparent" },
+                ]}
+                resizeMode="cover"
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <ScrollView
       style={styles.screen}
@@ -67,35 +157,133 @@ function LandingScreen() {
       <View style={{ alignItems: "center", marginTop: 12 }}>
         <Image
           source={logoTitle}
-          style={styles.brandLogo}
+          style={styles.brandLogoTitle}
           resizeMode="contain"
         />
       </View>
+      {/* Carrousels par catégorie (Gaming / Art Deco / Work) */}
+      <View style={{ marginTop: 12 }}>
+        {/* Gaming */}
+        <Carousel
+          title="Gaming Desks"
+          items={[deskImages.neonEdge, deskImages.rgbPro, deskImages.carbonXL]}
+          currentIndex={carouselIndex}
+          onIndexChange={setCarouselIndex}
+        />
 
-      <Card style={[styles.detailsCard, { marginTop: 18 }]} mode="contained">
-        <Card.Content>
-          <Text style={styles.detailsSectionTitle}>Bienvenue</Text>
-          <Text style={styles.detailsText}>
-            Nous concevons et vendons des bureaux premium pensés pour le
-            confort, la durabilité et le design. Découvrez nos collections
-            gaming, art déco et travail.
-          </Text>
+        {/* Description block moved under first carousel */}
+        <Card style={[styles.detailsCard, { marginTop: 8 }]} mode="contained">
+          <Card.Content>
+            <Text style={styles.detailsSectionTitle}>Welcome</Text>
+            <Text style={styles.detailsText}>
+              We design and sell premium desks thought for comfort, durability
+              and design. Discover our gaming, art deco and work collections.
+            </Text>
 
-          <Button
-            mode="contained"
-            style={{
-              marginTop: 14,
-              borderRadius: 12,
-              backgroundColor: "#5B6CFF",
-            }}
-            onPress={() =>
-              navigationRef.isReady() && navigationRef.navigate("Home")
-            }
-          >
-            Entrer dans la boutique
-          </Button>
-        </Card.Content>
-      </Card>
+            <View style={{ height: 10 }} />
+
+            <Button
+              mode="contained"
+              style={{
+                marginTop: 8,
+                borderRadius: 12,
+                backgroundColor: "#5B6CFF",
+              }}
+              onPress={() =>
+                navigationRef.isReady() && navigationRef.navigate("Home")
+              }
+            >
+              Enter in the shop
+            </Button>
+          </Card.Content>
+        </Card>
+
+        {/* (Desk Control card will be placed after the Art Deco carousel) */}
+
+        {/* short description between carousels */}
+        <View style={{ height: 12 }} />
+        <Text style={styles.detailsText}>
+          Explore our Art Deco designs below.
+        </Text>
+        <View style={{ height: 8 }} />
+
+        {/* Art Deco */}
+        <Carousel
+          title="Art Deco Desks"
+          items={[
+            deskImages.brassWalnut,
+            deskImages.velvetLine,
+            deskImages.marbleGlow,
+          ]}
+          currentIndex={carouselIndex}
+          onIndexChange={setCarouselIndex}
+        />
+
+        {/* Quick access to Desk Control (moved) */}
+        <Card style={[styles.detailsCard, { marginTop: 12 }]} mode="contained">
+          <Card.Content>
+            <Text style={styles.detailsSectionTitle}>Control your desk</Text>
+            <Text style={styles.detailsText}>
+              Access settings and control the lighting or demo height for direct
+              comfort experimentation.
+            </Text>
+
+            <View style={{ height: 10 }} />
+
+            <Button
+              mode="contained"
+              style={{
+                marginTop: 8,
+                borderRadius: 12,
+                backgroundColor: "#6CF0FF",
+              }}
+              onPress={() =>
+                navigationRef.isReady() && navigationRef.navigate("DeskControl")
+              }
+            >
+              Open Desk Control
+            </Button>
+          </Card.Content>
+        </Card>
+
+        <View style={{ height: 8 }} />
+        <Text style={styles.detailsText}>
+          Working solutions designed for productivity.
+        </Text>
+        <View style={{ height: 8 }} />
+
+        {/* Work */}
+        <Carousel
+          title="Work Desks"
+          items={[
+            deskImages.minimalWork,
+            deskImages.ergoStanding,
+            deskImages.oakProductivity,
+          ]}
+          currentIndex={carouselIndex}
+          onIndexChange={setCarouselIndex}
+        />
+
+        {/* Photo suggestion block (UI only) */}
+        <View style={{ height: 12 }} />
+        <Card style={[styles.detailsCard, { marginTop: 8 }]} mode="contained">
+          <Card.Content>
+            <Text style={styles.detailsSectionTitle}>Need some advice?</Text>
+            <Text style={styles.detailsText}>
+              Take a photo of your space and our app will suggest the most
+              suitable desk soon. (Coming soon)
+            </Text>
+            <View style={{ height: 10 }} />
+            <Button
+              mode="contained"
+              style={{ borderRadius: 12, backgroundColor: "#FFB300" }}
+              onPress={() => Alert.alert("Functionality", "Coming soon")}
+            >
+              Take a photo
+            </Button>
+          </Card.Content>
+        </Card>
+      </View>
     </ScrollView>
   );
 }
