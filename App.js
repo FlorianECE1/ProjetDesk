@@ -62,7 +62,7 @@ function LandingScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={{ alignItems: "center", marginTop: 12 }}>
         <Image
@@ -319,7 +319,7 @@ function HomeScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 22 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       {/* Logo central (celui que tu as remplacé) */}
       <View style={styles.brandBlock}>
@@ -354,12 +354,15 @@ function DeskControlScreen() {
   const swatches = ["#35E0FF", "#7C4DFF", "#FF4FD8", "#FFB300", "#40FF8A"];
 
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 180 }}
+    >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Desk Control</Text>
       </View>
 
-      <View style={styles.controlStack}>
+      <View style={[styles.controlStack, { flex: 0 }]}>
         {/* Lighting */}
         <Card style={styles.glassCard} mode="contained">
           <Card.Content style={styles.cardContentRow}>
@@ -462,7 +465,7 @@ function DeskControlScreen() {
           Go Home
         </Button>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -479,7 +482,7 @@ function CartScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <Text style={styles.controlTitle}>Cart</Text>
 
@@ -493,7 +496,7 @@ function CartScreen() {
             }
             style={{ marginTop: 14 }}
           >
-            Go Home
+            Go shopping
           </Button>
         </View>
       ) : (
@@ -654,7 +657,7 @@ function PaymentScreen({ route }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 28 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Visa Checkout</Text>
@@ -798,7 +801,7 @@ function OrderConfirmationScreen({ route }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 28 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Order confirmed </Text>
@@ -1044,7 +1047,7 @@ function NotificationsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 180 }}
     >
       <Text style={styles.controlTitle}>Notifications</Text>
 
@@ -1288,7 +1291,7 @@ function ProductDetailsScreen({ route }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={styles.detailsImageWrap}>
         <Image
@@ -1321,6 +1324,8 @@ function ProductDetailsScreen({ route }) {
 
       <Button
         mode="contained"
+        uppercase={false}
+        labelStyle={{ letterSpacing: 0 }}
         onPress={() => {
           dispatch({ type: "ADD", product });
           navigationRef.isReady() && navigationRef.navigate("Cart");
