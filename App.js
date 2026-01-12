@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import theme from "./src/theme";
-import styles from "./src/style";
+import styles from "./src/styles";
 
 import Slider from "@react-native-community/slider";
 
@@ -25,6 +25,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 // (some Expo runtimes/native versions may not accept values like 'large')
 import { enableScreens } from "react-native-screens";
 enableScreens(false);
+
 import { auth, db } from "./firebase";
 import {
   createUserWithEmailAndPassword,
@@ -45,6 +46,7 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
+
 const navigationRef = createNavigationContainerRef();
 const Tab = createBottomTabNavigator();
 
@@ -77,9 +79,239 @@ import {
   Menu,
 } from "react-native-paper";
 
+function LandingScreen() {
+  // Shared carousel index to synchronize all carousels
+  const [carouselIndex, setCarouselIndex] = React.useState(0);
+  const CAROUSEL_COUNT = 3; // each category has 3 images
+
+  // Global autoplay: advance all carousels together
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setCarouselIndex((i) => (i + 1) % CAROUSEL_COUNT);
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  const Carousel = ({ items, title, currentIndex, onIndexChange }) => {
+    const scrollRef = React.useRef(null);
+    const [containerWidth, setContainerWidth] = React.useState(null);
+    const windowWidth = Dimensions.get("window").width;
+    const gap = 12; // must match styles.carouselWrap.marginRight
+    const itemWidth = containerWidth ? containerWidth : windowWidth - 36; // fallback
+    const slideWidth = itemWidth + gap;
+
+    const n = items.length;
+    const data = [items[n - 1], ...items, items[0]]; // cloned edges for infinite loop
+
+    // When logical index (0..n-1) changes, animate to displayed index = logical+1
+    React.useEffect(() => {
+      if (!scrollRef.current || !containerWidth) return;
+      const displayed = currentIndex + 1; // account for leading clone
+      scrollRef.current.scrollTo({ x: displayed * slideWidth, animated: true });
+    }, [currentIndex, slideWidth, containerWidth]);
+
+    const handleMomentumEnd = (e) => {
+      const off = e.nativeEvent.contentOffset.x;
+      const displayed = Math.round(off / slideWidth);
+
+      if (displayed === 0) {
+        // landed on leading clone -> jump to real last
+        if (scrollRef.current)
+          scrollRef.current.scrollTo({ x: n * slideWidth, animated: false });
+        onIndexChange(n - 1);
+        return;
+      }
+
+      if (displayed === n + 1) {
+        // landed on trailing clone -> jump to real first
+        if (scrollRef.current)
+          scrollRef.current.scrollTo({ x: slideWidth, animated: false });
+        onIndexChange(0);
+        return;
+      }
+
+      // normal
+      onIndexChange(displayed - 1);
+    };
+
+    return (
+      <View
+        style={{ marginBottom: 8 }}
+        onLayout={(e) => {
+          const w = Math.max(0, e.nativeEvent.layout.width - 36); // subtract horizontal padding
+          if (w > 0 && w !== containerWidth) setContainerWidth(w);
+        }}
+      >
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={slideWidth}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleMomentumEnd}
+          contentContainerStyle={{ paddingHorizontal: 18 }}
+        >
+          {data.map((src, i) => (
+            <View key={i} style={[styles.carouselWrap, { width: itemWidth }]}>
+              <Image
+                source={src}
+                style={[
+                  styles.carouselImage,
+                  { backgroundColor: "transparent" },
+                ]}
+                resizeMode="cover"
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 140 }}
+    >
+      <View style={{ alignItems: "center", marginTop: 12 }}>
+        <Image
+          source={logoTitle}
+          style={styles.brandLogoTitle}
+          resizeMode="contain"
+        />
+      </View>
+      {/* Carrousels par catégorie (Gaming / Art Deco / Work) */}
+      <View style={{ marginTop: 12 }}>
+        {/* Gaming */}
+        <Carousel
+          title="Gaming Desks"
+          items={[deskImages.neonEdge, deskImages.rgbPro, deskImages.carbonXL]}
+          currentIndex={carouselIndex}
+          onIndexChange={setCarouselIndex}
+        />
+
+        {/* Description block moved under first carousel */}
+        <Card style={[styles.detailsCard, { marginTop: 8 }]} mode="contained">
+          <Card.Content>
+            <Text style={styles.detailsSectionTitle}>Welcome</Text>
+            <Text style={styles.detailsText}>
+              We design and sell premium desks thought for comfort, durability
+              and design. Discover our gaming, art deco and work collections.
+            </Text>
+
+            <View style={{ height: 10 }} />
+
+            <Button
+              mode="contained"
+              style={{
+                marginTop: 8,
+                borderRadius: 12,
+                backgroundColor: "#5B6CFF",
+              }}
+              onPress={() =>
+                navigationRef.isReady() && navigationRef.navigate("Home")
+              }
+            >
+              Enter in the shop
+            </Button>
+          </Card.Content>
+        </Card>
+
+        {/* (Desk Control card will be placed after the Art Deco carousel) */}
+
+        {/* short description between carousels */}
+        <View style={{ height: 12 }} />
+        <Text style={styles.detailsText}>
+          Explore our Art Deco designs below.
+        </Text>
+        <View style={{ height: 8 }} />
+
+        {/* Art Deco */}
+        <Carousel
+          title="Art Deco Desks"
+          items={[
+            deskImages.brassWalnut,
+            deskImages.velvetLine,
+            deskImages.marbleGlow,
+          ]}
+          currentIndex={carouselIndex}
+          onIndexChange={setCarouselIndex}
+        />
+
+        {/* Quick access to Desk Control (moved) */}
+        <Card style={[styles.detailsCard, { marginTop: 12 }]} mode="contained">
+          <Card.Content>
+            <Text style={styles.detailsSectionTitle}>Control your desk</Text>
+            <Text style={styles.detailsText}>
+              Access settings and control the lighting or demo height for direct
+              comfort experimentation.
+            </Text>
+
+            <View style={{ height: 10 }} />
+
+            <Button
+              mode="contained"
+              style={{
+                marginTop: 8,
+                borderRadius: 12,
+                backgroundColor: "#6CF0FF",
+              }}
+              onPress={() =>
+                navigationRef.isReady() && navigationRef.navigate("DeskControl")
+              }
+            >
+              Open Desk Control
+            </Button>
+          </Card.Content>
+        </Card>
+
+        <View style={{ height: 8 }} />
+        <Text style={styles.detailsText}>
+          Working solutions designed for productivity.
+        </Text>
+        <View style={{ height: 8 }} />
+
+        {/* Work */}
+        <Carousel
+          title="Work Desks"
+          items={[
+            deskImages.minimalWork,
+            deskImages.ergoStanding,
+            deskImages.oakProductivity,
+          ]}
+          currentIndex={carouselIndex}
+          onIndexChange={setCarouselIndex}
+        />
+
+        {/* Photo suggestion block (UI only) */}
+        <View style={{ height: 12 }} />
+        <Card style={[styles.detailsCard, { marginTop: 8 }]} mode="contained">
+          <Card.Content>
+            <Text style={styles.detailsSectionTitle}>Need some advice?</Text>
+            <Text style={styles.detailsText}>
+              Take a photo of your space and our app will suggest the most
+              suitable desk soon. (Coming soon)
+            </Text>
+            <View style={{ height: 10 }} />
+            <Button
+              mode="contained"
+              style={{ borderRadius: 12, backgroundColor: "#FFB300" }}
+              onPress={() => Alert.alert("Functionality", "Coming soon")}
+            >
+              Take a photo
+            </Button>
+          </Card.Content>
+        </Card>
+      </View>
+    </ScrollView>
+  );
+}
+
 function HomeScreen() {
-  const { sortOrder } = React.useContext(SortContext);
-  const { filter } = React.useContext(FilterContext);
+  const { sortOrder, setSortOrder } = React.useContext(SortContext);
+  const { filter, setFilter } = React.useContext(FilterContext);
   const PRODUCTS = [
     // --- GAMING
     {
@@ -296,7 +528,7 @@ function HomeScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 22 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       {/* Logo central (celui que tu as remplacé) */}
       <View style={styles.brandBlock}>
@@ -304,6 +536,37 @@ function HomeScreen() {
           source={logoTitle}
           style={styles.brandLogoTitle}
           resizeMode="contain"
+        />
+      </View>
+
+      {/* Boutons Tri + Filtre en haut (page shopping) */}
+      <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+        <IconButton
+          icon="sort"
+          iconColor="rgba(255,255,255,0.90)"
+          size={24}
+          onPress={() =>
+            Alert.alert("Sort", "Choose the order", [
+              { text: "Ascending price", onPress: () => setSortOrder("ASC") },
+              { text: "Descending price", onPress: () => setSortOrder("DESC") },
+              { text: "No sort", onPress: () => setSortOrder("NONE") },
+              { text: "Cancel", style: "cancel" },
+            ])
+          }
+        />
+        <IconButton
+          icon="filter-variant"
+          iconColor="rgba(255,255,255,0.90)"
+          size={24}
+          onPress={() =>
+            Alert.alert("Filter", "Choose a category", [
+              { text: "All", onPress: () => setFilter("ALL") },
+              { text: "Gaming", onPress: () => setFilter("GAMING") },
+              { text: "Art Deco", onPress: () => setFilter("ARTDECO") },
+              { text: "Work", onPress: () => setFilter("WORK") },
+              { text: "Cancel", style: "cancel" },
+            ])
+          }
         />
       </View>
 
@@ -331,12 +594,15 @@ function DeskControlScreen() {
   const swatches = ["#35E0FF", "#7C4DFF", "#FF4FD8", "#FFB300", "#40FF8A"];
 
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 180 }}
+    >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Desk Control</Text>
       </View>
 
-      <View style={styles.controlStack}>
+      <View style={[styles.controlStack, { flex: 0 }]}>
         {/* Lighting */}
         <Card style={styles.glassCard} mode="contained">
           <Card.Content style={styles.cardContentRow}>
@@ -439,7 +705,7 @@ function DeskControlScreen() {
           Go Home
         </Button>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -457,7 +723,7 @@ function CartScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <Text style={styles.controlTitle}>Cart</Text>
 
@@ -471,7 +737,7 @@ function CartScreen() {
             }
             style={{ marginTop: 14 }}
           >
-            Go Home
+            Go shopping
           </Button>
         </View>
       ) : (
@@ -536,7 +802,6 @@ function CartScreen() {
                       navigationRef.navigate("Account", { mode: "login" });
                     return;
                   }
-
                   navigationRef.isReady() &&
                     navigationRef.navigate("Payment", { total });
                 }}
@@ -568,7 +833,6 @@ function PaymentScreen({ route }) {
 
   const { cartState, dispatch } = React.useContext(CartContext);
   const { user } = React.useContext(AuthContext);
-
   const { notifDispatch } = React.useContext(NotificationsContext);
 
   const [name, setName] = React.useState("");
@@ -615,6 +879,7 @@ function PaymentScreen({ route }) {
   const onPay = async () => {
     setSubmitted(true);
     if (!canPay) return;
+
     if (!user) {
       Alert.alert("Sign in required", "You must be signed in to checkout.", [
         { text: "Cancel", style: "cancel" },
@@ -631,7 +896,7 @@ function PaymentScreen({ route }) {
     const orderId = `101214-${Math.floor(100000 + Math.random() * 900000)}`;
 
     try {
-      // ✅ Notification (tu peux la mettre après si tu veux qu'elle arrive seulement si la commande est sauvée)
+      // Ajoute une notification
       notifDispatch({
         type: "ADD_NOTIFICATION",
         notification: {
@@ -642,51 +907,45 @@ function PaymentScreen({ route }) {
         },
       });
 
-      if (user) {
-        const lines = Object.values(cartState.items).map(
-          ({ product, qty }) => ({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            qty,
-          })
-        );
+      const lines = Object.values(cartState.items).map(({ product, qty }) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        qty,
+      }));
 
-        console.log("USER UID:", user.uid);
-        console.log("WRITING ORDER:", { orderId, total, items: lines });
-
-        try {
-          await addDoc(collection(db, "orders"), {
-            userId: user.uid,
-            orderId,
-            total,
-            items: lines,
-            createdAt: serverTimestamp(),
-          });
-          console.log("ORDER SAVED ✅");
-        } catch (firestoreError) {
-          console.log("ORDER SAVE FAILED, but proceeding:", firestoreError);
-          // Continue with payment even if save fails
-        }
+      try {
+        await addDoc(collection(db, "orders"), {
+          userId: user.uid,
+          orderId,
+          total,
+          items: lines,
+          createdAt: serverTimestamp(),
+        });
+      } catch (firestoreError) {
+        // Continue with payment UX even if save fails
+        console.log("ORDER SAVE FAILED, but proceeding:", firestoreError);
       }
+
       // Vide le panier
       dispatch({ type: "CLEAR" });
 
-      if (navigationRef.isReady()) {
+      //  Va à la page confirmation
+      navigationRef.isReady() &&
         navigationRef.navigate("OrderConfirmation", { orderId, total });
-      }
     } catch (e) {
-      console.log("PAY ERROR ❌", e);
+      console.log("PAY ERROR", e);
       Alert.alert(
         "Payment error",
         e?.message || "An error occurred during payment."
       );
     }
   };
+
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 28 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Visa Checkout</Text>
@@ -720,6 +979,7 @@ function PaymentScreen({ route }) {
       <Card style={styles.detailsCard} mode="contained">
         <Card.Content>
           <Text style={styles.detailsSectionTitle}>Card details</Text>
+
           <TextInput
             mode="outlined"
             label="Cardholder name"
@@ -734,6 +994,7 @@ function PaymentScreen({ route }) {
           <HelperText type="error" visible={submitted && !isValidName}>
             Enter a valid name.
           </HelperText>
+
           <TextInput
             mode="outlined"
             label="Card number"
@@ -749,6 +1010,7 @@ function PaymentScreen({ route }) {
           <HelperText type="error" visible={submitted && !isValidCard}>
             Card number must be 16 digits.
           </HelperText>
+
           <View style={styles.payRow}>
             <View style={{ flex: 1 }}>
               <TextInput
@@ -788,24 +1050,22 @@ function PaymentScreen({ route }) {
               </HelperText>
             </View>
           </View>
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total</Text>
             <Text style={styles.summaryValue}>${total}</Text>
           </View>
+
           <Button
             mode="contained"
             onPress={onPay}
-            disabled={!canPay || !user}
-            style={[styles.payButton, { opacity: canPay && user ? 1 : 0.55 }]}
+            disabled={!canPay}
+            style={[styles.payButton, { opacity: canPay ? 1 : 0.55 }]}
             contentStyle={{ height: 54 }}
             labelStyle={{ fontWeight: "900", letterSpacing: 1.2 }}
           >
             PAY NOW
           </Button>
-          <Text style={{ color: "white", marginTop: 10 }}>
-            canPay: {String(canPay)} | name:{name.length} card:
-            {digitsOnly(card).length} exp:{expiry} cvc:{digitsOnly(cvc).length}
-          </Text>
 
           <Button
             mode="outlined"
@@ -829,7 +1089,7 @@ function OrderConfirmationScreen({ route }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 28 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={styles.controlHeader}>
         <Text style={styles.controlTitle}>Order confirmed </Text>
@@ -870,6 +1130,7 @@ function OrderConfirmationScreen({ route }) {
     </ScrollView>
   );
 }
+
 function AccountScreen({ route }) {
   const { user } = React.useContext(AuthContext);
 
@@ -997,7 +1258,7 @@ function AccountScreen({ route }) {
     return (
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
       >
         <View style={styles.simpleCard}>
           <Text style={styles.cardTitle}>My profile</Text>
@@ -1125,7 +1386,7 @@ function AccountScreen({ route }) {
               mode="outlined"
               label="Phone"
               value={phone}
-              onChangeText={(v) => setPhone(v.replace(/\D/g, ""))}
+              onChangeText={setPhone}
               style={{ marginTop: 8 }}
               keyboardType="phone-pad"
               textColor="white"
@@ -1181,7 +1442,7 @@ function NotificationsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 180 }}
     >
       <Text style={styles.controlTitle}>Notifications</Text>
 
@@ -1240,7 +1501,7 @@ export default function App() {
   return (
     <FilterContext.Provider value={{ filter, setFilter }}>
       <SortContext.Provider value={{ sortOrder, setSortOrder }}>
-        <AuthContext.Provider value={{ user, setUser }}>
+        <AuthContext.Provider value={{ user }}>
           <CartContext.Provider value={{ cartState, dispatch }}>
             <NotificationsContext.Provider
               value={{ notifState, notifDispatch }}
@@ -1250,11 +1511,11 @@ export default function App() {
                   <StatusBar barStyle="light-content" />
 
                   <Appbar.Header style={styles.appbarHeader}>
-                    <View style={styles.appbarHeader}>
+                    <View style={styles.appbarLeft}>
                       <TouchableOpacity
                         onPress={() =>
                           navigationRef.isReady() &&
-                          navigationRef.navigate("Home")
+                          navigationRef.navigate("Landing")
                         }
                         style={styles.logoButton}
                       >
@@ -1267,52 +1528,7 @@ export default function App() {
                     </View>
 
                     <View style={styles.appbarRight}>
-                      {/* ✅ IMPORTANT : afficher le bouton paramètres sur toutes les pages sauf "DeskControl" */}
-
-                      {/* TRI */}
-                      <Appbar.Action
-                        icon="sort"
-                        onPress={() =>
-                          Alert.alert("Sorting", "Choisis l'ordre", [
-                            {
-                              text: "Ascending price",
-                              onPress: () => setSortOrder("ASC"),
-                            },
-                            {
-                              text: "Descending price",
-                              onPress: () => setSortOrder("DESC"),
-                            },
-                            {
-                              text: "No sorting",
-                              onPress: () => setSortOrder("NONE"),
-                            },
-                            { text: "Cancel", style: "cancel" },
-                          ])
-                        }
-                      />
-
-                      <Appbar.Action
-                        icon="tune-variant"
-                        onPress={() =>
-                          navigationRef.isReady() &&
-                          navigationRef.navigate("DeskControl")
-                        }
-                      />
-
-                      <Appbar.Action
-                        icon="cart"
-                        onPress={() =>
-                          navigationRef.isReady() &&
-                          navigationRef.navigate("Cart")
-                        }
-                      />
-                      <Appbar.Action
-                        icon="account"
-                        onPress={() =>
-                          navigationRef.isReady() &&
-                          navigationRef.navigate("Account")
-                        }
-                      />
+                      {/* Only keep notifications in the top bar (logo stays left) */}
                       <Appbar.Action
                         icon="bell"
                         onPress={() =>
@@ -1335,7 +1551,9 @@ export default function App() {
                         headerShown: false,
                         tabBarStyle: { display: "none" },
                       }}
+                      initialRouteName="Landing"
                     >
+                      <Tab.Screen name="Landing" component={LandingScreen} />
                       <Tab.Screen name="Home" component={HomeScreen} />
                       <Tab.Screen
                         name="DeskControl"
@@ -1358,6 +1576,104 @@ export default function App() {
                       <Tab.Screen name="Payment" component={PaymentScreen} />
                     </Tab.Navigator>
                   </NavigationContainer>
+                  {/* Footer bar with actions anchored to the bottom (logo and bell remain in header) */}
+                  <View style={styles.footerBar} pointerEvents="box-none">
+                    {/* Sort button removed from footer for now — kept here commented for later
+                    <IconButton
+                      icon="sort"
+                      iconColor="rgba(255,255,255,0.9)"
+                      size={22}
+                      onPress={() =>
+                        Alert.alert("Sort", "Choose the order", [
+                          {
+                            text: "Ascending price",
+                            onPress: () => setSortOrder("ASC"),
+                          },
+                          {
+                            text: "Descending price",
+                            onPress: () => setSortOrder("DESC"),
+                          },
+                          {
+                            text: "No sort",
+                            onPress: () => setSortOrder("NONE"),
+                          },
+                          { text: "Cancel", style: "cancel" },
+                        ])
+                      }
+                    />
+                    */}
+
+                    <IconButton
+                      icon="home"
+                      iconColor="rgba(255,255,255,0.95)"
+                      size={24}
+                      onPress={() =>
+                        navigationRef.isReady() &&
+                        navigationRef.navigate("Landing")
+                      }
+                    />
+
+                    <IconButton
+                      icon="store"
+                      iconColor="rgba(255,255,255,0.9)"
+                      size={22}
+                      onPress={() =>
+                        navigationRef.isReady() &&
+                        navigationRef.navigate("Home")
+                      }
+                    />
+
+                    {/* <IconButton
+                      icon="filter-variant"
+                      iconColor="rgba(255,255,255,0.9)"
+                      size={22}
+                      onPress={() =>
+                        Alert.alert("Filter", "Choose a category", [
+                          { text: "All", onPress: () => setFilter("ALL") },
+                          {
+                            text: "Gaming",
+                            onPress: () => setFilter("GAMING"),
+                          },
+                          {
+                            text: "Art Deco",
+                            onPress: () => setFilter("ARTDECO"),
+                          },
+                          { text: "Work", onPress: () => setFilter("WORK") },
+                          { text: "Cancel", style: "cancel" },
+                        ])
+                      }
+                    /> */}
+
+                    <IconButton
+                      icon="tune-variant"
+                      iconColor="rgba(255,255,255,0.9)"
+                      size={22}
+                      onPress={() =>
+                        navigationRef.isReady() &&
+                        navigationRef.navigate("DeskControl")
+                      }
+                    />
+
+                    <IconButton
+                      icon="cart"
+                      iconColor="rgba(255,255,255,0.9)"
+                      size={22}
+                      onPress={() =>
+                        navigationRef.isReady() &&
+                        navigationRef.navigate("Cart")
+                      }
+                    />
+
+                    <IconButton
+                      icon="account"
+                      iconColor="rgba(255,255,255,0.9)"
+                      size={22}
+                      onPress={() =>
+                        navigationRef.isReady() &&
+                        navigationRef.navigate("Account")
+                      }
+                    />
+                  </View>
                 </SafeAreaView>
               </PaperProvider>
             </NotificationsContext.Provider>
@@ -1375,7 +1691,7 @@ function ProductDetailsScreen({ route }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 140 }}
     >
       <View style={styles.detailsImageWrap}>
         <Image
@@ -1408,6 +1724,8 @@ function ProductDetailsScreen({ route }) {
 
       <Button
         mode="contained"
+        uppercase={false}
+        labelStyle={{ letterSpacing: 0 }}
         onPress={() => {
           dispatch({ type: "ADD", product });
           navigationRef.isReady() && navigationRef.navigate("Cart");
@@ -1509,3 +1827,4 @@ function cartReducer(state, action) {
       return state;
   }
 }
+//commit
