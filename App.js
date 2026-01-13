@@ -55,7 +55,9 @@ const Tab = createBottomTabNavigator();
 
 const logoSource = require("./assets/logo.png");
 const logoTitle = require("./assets/nom_logoV2.png");
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY =
+  "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";
+
 const deskImages = {
   neonEdge: require("./assets/neon.png"),
   rgbPro: require("./assets/rgb.png"),
@@ -526,16 +528,15 @@ function HomeScreen() {
         BUY NOW
       </Button>
       <Button
-  mode="contained"
-  style={{ marginTop: 12 }}
-  onPress={() =>
-    navigationRef.isReady() &&
-    navigationRef.navigate("TryInRoom", { product: item })
-  }
->
-  Try in my room
-</Button>
-          
+        mode="contained"
+        style={{ marginTop: 12 }}
+        onPress={() =>
+          navigationRef.isReady() &&
+          navigationRef.navigate("TryInRoom", { product: item })
+        }
+      >
+        Try in my room
+      </Button>
     </View>
   );
 
@@ -1493,13 +1494,15 @@ function NotificationsScreen() {
   );
 }
 
-
-  function TryInRoomScreen({ route }) {
+function TryInRoomScreen({ route }) {
   const product = route?.params?.product;
 
   if (!product) {
     return (
-      <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 30 }}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: 30 }}
+      >
         <Text style={styles.controlTitle}>Try in my room</Text>
         <Text style={styles.cardSub}>
           No product provided. Open this screen from a product page.
@@ -1508,14 +1511,15 @@ function NotificationsScreen() {
         <Button
           mode="contained"
           style={{ marginTop: 12 }}
-          onPress={() => navigationRef.isReady() && navigationRef.navigate("Home")}
+          onPress={() =>
+            navigationRef.isReady() && navigationRef.navigate("Home")
+          }
         >
           Go to shop
         </Button>
       </ScrollView>
     );
   }
-
 
   const [photoUri, setPhotoUri] = React.useState(null);
   const [resultB64, setResultB64] = React.useState(null);
@@ -1614,7 +1618,10 @@ Do not change anything else.
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 30 }}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingBottom: 30 }}
+    >
       <Text style={styles.controlTitle}>Try in my room</Text>
       <Text style={styles.cardSub}>Selected: {product.name}</Text>
 
@@ -1624,7 +1631,10 @@ Do not change anything else.
 
       {photoUri ? (
         <View style={{ marginTop: 12, borderRadius: 18, overflow: "hidden" }}>
-          <Image source={{ uri: photoUri }} style={{ width: "100%", height: 320 }} />
+          <Image
+            source={{ uri: photoUri }}
+            style={{ width: "100%", height: 320 }}
+          />
         </View>
       ) : null}
 
@@ -1649,7 +1659,6 @@ Do not change anything else.
   );
 }
 
-      
 export default function App() {
   const [routeName, setRouteName] = React.useState("Home");
   const [cartState, dispatch] = React.useReducer(cartReducer, { items: {} });
@@ -1726,7 +1735,10 @@ export default function App() {
                     >
                       <Tab.Screen name="Landing" component={LandingScreen} />
                       <Tab.Screen name="Home" component={HomeScreen} />
-                      <Tab.Screen name="TryInRoom" component={TryInRoomScreen} />
+                      <Tab.Screen
+                        name="TryInRoom"
+                        component={TryInRoomScreen}
+                      />
                       <Tab.Screen
                         name="DeskControl"
                         component={DeskControlScreen}
