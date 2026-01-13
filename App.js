@@ -1726,6 +1726,7 @@ export default function App() {
                     >
                       <Tab.Screen name="Landing" component={LandingScreen} />
                       <Tab.Screen name="Home" component={HomeScreen} />
+                      <Tab.Screen name="TryInRoom" component={TryInRoomScreen} />
                       <Tab.Screen
                         name="DeskControl"
                         component={DeskControlScreen}
