@@ -1493,6 +1493,163 @@ function NotificationsScreen() {
   );
 }
 
+
+  function TryInRoomScreen({ route }) {
+  const product = route?.params?.product;
+
+  if (!product) {
+    return (
+      <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 30 }}>
+        <Text style={styles.controlTitle}>Try in my room</Text>
+        <Text style={styles.cardSub}>
+          No product provided. Open this screen from a product page.
+        </Text>
+
+        <Button
+          mode="contained"
+          style={{ marginTop: 12 }}
+          onPress={() => navigationRef.isReady() && navigationRef.navigate("Home")}
+        >
+          Go to shop
+        </Button>
+      </ScrollView>
+    );
+  }
+
+
+  const [photoUri, setPhotoUri] = React.useState(null);
+  const [resultB64, setResultB64] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+
+  const takePhoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission", "Camera permission is required.");
+      return;
+    }
+
+    const r = await ImagePicker.launchCameraAsync({
+      quality: 0.85,
+      allowsEditing: false,
+    });
+
+    if (r.canceled) return;
+    setPhotoUri(r.assets[0].uri);
+    setResultB64(null);
+  };
+
+  const callOpenAI = async () => {
+    if (!photoUri) return;
+
+    setLoading(true);
+    try {
+      const prompt = `
+Insert a realistic ${product.name} desk into this room photo.
+Keep the room identical (walls, lighting, perspective).
+Place the desk naturally with correct scale and realistic shadows.
+Do not change anything else.
+      `.trim();
+
+      // Convertir en PNG + resize (stable)
+      const png = await ImageManipulator.manipulateAsync(
+        photoUri,
+        [{ resize: { width: 768 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.PNG }
+      );
+
+      const b64img = await FileSystem.readAsStringAsync(png.uri, {
+        encoding: "base64",
+      });
+
+      const dataUrl = `data:image/png;base64,${b64img}`;
+
+      const resp = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4.1-mini",
+          input: [
+            {
+              role: "user",
+              content: [
+                { type: "input_text", text: prompt },
+                { type: "input_image", image_url: dataUrl },
+              ],
+            },
+          ],
+          tools: [{ type: "image_generation" }],
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        try {
+          const j = JSON.parse(errText);
+          throw new Error(j?.error?.message || errText);
+        } catch {
+          throw new Error(errText);
+        }
+      }
+
+      const data = await resp.json();
+
+      const imgCall = (data.output || []).find(
+        (o) => o.type === "image_generation_call"
+      );
+      const b64 = imgCall?.result;
+
+      if (!b64) {
+        throw new Error("No image returned (image_generation_call missing).");
+      }
+
+      setResultB64(b64);
+    } catch (e) {
+      Alert.alert("Error", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 30 }}>
+      <Text style={styles.controlTitle}>Try in my room</Text>
+      <Text style={styles.cardSub}>Selected: {product.name}</Text>
+
+      <Button mode="contained" style={{ marginTop: 12 }} onPress={takePhoto}>
+        Take a photo
+      </Button>
+
+      {photoUri ? (
+        <View style={{ marginTop: 12, borderRadius: 18, overflow: "hidden" }}>
+          <Image source={{ uri: photoUri }} style={{ width: "100%", height: 320 }} />
+        </View>
+      ) : null}
+
+      <Button
+        mode="contained"
+        style={{ marginTop: 12, opacity: photoUri && !loading ? 1 : 0.6 }}
+        disabled={!photoUri || loading}
+        onPress={callOpenAI}
+      >
+        {loading ? "Generating..." : "Analyse"}
+      </Button>
+
+      {resultB64 ? (
+        <View style={{ marginTop: 16, borderRadius: 18, overflow: "hidden" }}>
+          <Image
+            source={{ uri: `data:image/png;base64,${resultB64}` }}
+            style={{ width: "100%", height: 320 }}
+          />
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+      
 export default function App() {
   const [routeName, setRouteName] = React.useState("Home");
   const [cartState, dispatch] = React.useReducer(cartReducer, { items: {} });
