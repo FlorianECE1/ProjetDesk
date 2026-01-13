@@ -55,7 +55,7 @@ const Tab = createBottomTabNavigator();
 
 const logoSource = require("./assets/logo.png");
 const logoTitle = require("./assets/nom_logoV2.png");
-
+const OPENAI_API_KEY = "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";
 const deskImages = {
   neonEdge: require("./assets/neon.png"),
   rgbPro: require("./assets/rgb.png"),
