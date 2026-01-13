@@ -525,6 +525,17 @@ function HomeScreen() {
       >
         BUY NOW
       </Button>
+      <Button
+  mode="contained"
+  style={{ marginTop: 12 }}
+  onPress={() =>
+    navigationRef.isReady() &&
+    navigationRef.navigate("TryInRoom", { product: item })
+  }
+>
+  Try in my room
+</Button>
+          
     </View>
   );
 
