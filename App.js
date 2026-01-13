@@ -1,3 +1,6 @@
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as React from "react";
 import {
   SafeAreaView,
