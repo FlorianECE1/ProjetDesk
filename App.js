@@ -303,7 +303,9 @@ function LandingScreen() {
             <Button
               mode="contained"
               style={{ borderRadius: 12, backgroundColor: "#FFB300" }}
-              onPress={() => Alert.alert("Functionality", "Coming soon")}
+              onPress={() =>
+                navigationRef.isReady() && navigationRef.navigate("TryInRoom")
+              }
             >
               Take a photo
             </Button>
