@@ -12,6 +12,8 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  Platform,
+  LogBox,
 } from "react-native";
 import theme from "./src/theme";
 import styles from "./src/styles";
@@ -83,6 +85,165 @@ import {
   HelperText,
   Menu,
 } from "react-native-paper";
+
+// Expo Go (Android) SDK 53+ no longer supports remote push notifications.
+// This is a known warning from expo-notifications even when using only local notifications.
+LogBox.ignoreLogs([
+  "Push notifications (remote notifications) functionality provided by `expo-notifications` was removed from Expo Go",
+  "Push notifications (remote notifications) functionality provided by `expo-notifications` is unavailable in Expo Go",
+  "was removed from Expo Go with the release of SDK 53",
+  "was removed from expo go with the release of sdk 53",
+  "android push notification(remote notification)",
+  "android push notifications(remote notifications)",
+]);
+
+// Some runtimes log this as a console error instead of a LogBox warning.
+// Filter only this known, non-actionable message.
+const __origConsoleError = console.error;
+console.error = (...args) => {
+  try {
+    const combined = args
+      .map((a) => (typeof a === "string" ? a : ""))
+      .join(" ")
+      .toLowerCase();
+    if (
+      combined.includes("expo notification") &&
+      combined.includes("push") &&
+      combined.includes("expo go") &&
+      combined.includes("sdk 53")
+    ) {
+      return;
+    }
+  } catch {
+    // ignore
+  }
+  __origConsoleError(...args);
+};
+
+const __origConsoleWarn = console.warn;
+console.warn = (...args) => {
+  try {
+    const combined = args
+      .map((a) => (typeof a === "string" ? a : ""))
+      .join(" ")
+      .toLowerCase();
+    if (
+      combined.includes("expo notification") &&
+      combined.includes("push") &&
+      combined.includes("expo go") &&
+      combined.includes("sdk 53")
+    ) {
+      return;
+    }
+  } catch {
+    // ignore
+  }
+  __origConsoleWarn(...args);
+};
+
+let Notifications = null;
+try {
+  // In some runtimes (Expo Go mismatch / custom native requirements),
+  // the native module may be unavailable and will require a dev build.
+  Notifications = require("expo-notifications");
+} catch {
+  Notifications = null;
+}
+
+if (Notifications?.setNotificationHandler) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function fetchWithRetry(
+  url,
+  options,
+  { retries = 2, baseDelayMs = 650 } = {}
+) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      if (resp.status >= 500 && resp.status <= 599 && attempt < retries) {
+        await sleep(baseDelayMs * Math.pow(2, attempt));
+        continue;
+      }
+      return resp;
+    } catch (e) {
+      lastError = e;
+      if (attempt < retries) {
+        await sleep(baseDelayMs * Math.pow(2, attempt));
+        continue;
+      }
+      throw lastError;
+    }
+  }
+  throw lastError;
+}
+
+function normalizeHttpErrorMessage({ status, statusText, bodyText }) {
+  const raw = (bodyText || "").trim();
+  const maybeJson = raw && (raw.startsWith("{") || raw.startsWith("["));
+
+  if (maybeJson) {
+    try {
+      const j = JSON.parse(raw);
+      const msg = j?.error?.message || j?.message;
+      if (msg) return msg;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (status >= 500)
+    return `Service indisponible (erreur ${status}). Réessaie dans quelques secondes.`;
+  if (status === 401) return "Clé API invalide/expirée (401).";
+  if (status === 403) return "Accès refusé (403).";
+  if (status === 429) return "Trop de requêtes (429). Réessaie plus tard.";
+  if (status === 413)
+    return "Image trop lourde (413). Essaie une photo plus légère.";
+
+  return raw || `Erreur HTTP ${status}${statusText ? ` (${statusText})` : ""}.`;
+}
+
+async function ensureSystemNotificationsReadyAsync() {
+  if (!Notifications) return false;
+  try {
+    // SDK 53+ (Expo Go): remote push registration is not supported.
+    // We only need local notifications here.
+    const current = await Notifications.getPermissionsAsync();
+    let granted = current.granted ?? current.status === "granted";
+
+    if (!granted) {
+      const requested = await Notifications.requestPermissionsAsync({
+        ios: { allowAlert: true, allowSound: true, allowBadge: false },
+      });
+      granted = requested.granted ?? requested.status === "granted";
+    }
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#5B6CFF",
+        sound: "default",
+      });
+    }
+
+    return granted;
+  } catch (e) {
+    console.log("NOTIFICATIONS SETUP ERROR", e);
+    return false;
+  }
+}
 
 function LandingScreen() {
   // Shared carousel index to synchronize all carousels
@@ -754,7 +915,7 @@ function CartScreen() {
             }
             style={{ marginTop: 14 }}
           >
-            Go shopping
+            Go to shop
           </Button>
         </View>
       ) : (
@@ -923,6 +1084,29 @@ function PaymentScreen({ route }) {
           date: new Date().toISOString(),
         },
       });
+
+      // Notification système (sur le téléphone)
+      const enabled = await ensureSystemNotificationsReadyAsync();
+      if (!Notifications) {
+        Alert.alert(
+          "Notifications",
+          "System notifications aren't available in this environment. Update Expo Go (SDK 54) or use a development build (expo-dev-client)."
+        );
+      } else if (enabled) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Purchase confirmed",
+            body: `Your order ${orderId} is confirmed. Total: $${total}.`,
+            sound: true,
+            data: {
+              screen: "OrderConfirmation",
+              params: { orderId, total },
+            },
+          },
+          // SDK 54+: Use null trigger for immediate delivery.
+          trigger: null,
+        });
+      }
 
       const lines = Object.values(cartState.items).map(({ product, qty }) => ({
         id: product.id,
@@ -1556,11 +1740,11 @@ Place the desk naturally with correct scale and realistic shadows.
 Do not change anything else.
       `.trim();
 
-      // Convertir en PNG + resize (stable)
+      // Convertir en PNG + resize (limite la taille pour éviter erreurs serveur)
       const png = await ImageManipulator.manipulateAsync(
         photoUri,
-        [{ resize: { width: 768 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.PNG }
+        [{ resize: { width: 512 } }],
+        { compress: 0.6, format: ImageManipulator.SaveFormat.PNG }
       );
 
       const b64img = await FileSystem.readAsStringAsync(png.uri, {
@@ -1569,7 +1753,7 @@ Do not change anything else.
 
       const dataUrl = `data:image/png;base64,${b64img}`;
 
-      const resp = await fetch("https://api.openai.com/v1/responses", {
+      const resp = await fetchWithRetry("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1592,12 +1776,20 @@ Do not change anything else.
 
       if (!resp.ok) {
         const errText = await resp.text();
-        try {
-          const j = JSON.parse(errText);
-          throw new Error(j?.error?.message || errText);
-        } catch {
-          throw new Error(errText);
-        }
+        const requestId =
+          resp.headers?.get?.("x-request-id") ||
+          resp.headers?.get?.("x-openai-request-id");
+        const msg = normalizeHttpErrorMessage({
+          status: resp.status,
+          statusText: resp.statusText,
+          bodyText: errText,
+        });
+        console.log("OPENAI HTTP ERROR", {
+          status: resp.status,
+          requestId,
+          body: errText?.slice?.(0, 2000),
+        });
+        throw new Error(requestId ? `${msg}\n(Request ID: ${requestId})` : msg);
       }
 
       const data = await resp.json();
@@ -1670,6 +1862,35 @@ export default function App() {
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
+  }, []);
+
+  React.useEffect(() => {
+    // Best-effort init; does nothing if user denies permissions.
+    ensureSystemNotificationsReadyAsync();
+
+    if (!Notifications) return;
+
+    const handle = (response) => {
+      const data = response?.notification?.request?.content?.data;
+      const screen = data?.screen;
+      const params = data?.params;
+
+      if (screen && navigationRef.isReady()) {
+        navigationRef.navigate(screen, params);
+      }
+    };
+
+    const sub = Notifications.addNotificationResponseReceivedListener(handle);
+
+    Notifications.getLastNotificationResponseAsync()
+      .then((resp) => {
+        if (resp) handle(resp);
+      })
+      .catch(() => {
+        // ignore
+      });
+
+    return () => sub.remove();
   }, []);
 
   const [notifState, notifDispatch] = React.useReducer(notificationsReducer, {
