@@ -457,8 +457,8 @@ function LandingScreen() {
           <Card.Content>
             <Text style={styles.detailsSectionTitle}>Need some advice?</Text>
             <Text style={styles.detailsText}>
-              Take a photo of your space and our app will suggest the most
-              suitable desk soon. (Coming soon)
+              Take a photo of your room and view a desk from our shop so you can
+              check if it suits you.
             </Text>
             <View style={{ height: 10 }} />
             <Button
