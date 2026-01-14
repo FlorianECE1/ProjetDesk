@@ -26,8 +26,8 @@ import {
 } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-// Disable native screens to avoid passing iOS-specific detent strings
-// (some Expo runtimes/native versions may not accept values like 'large')
+// Désactive les écrans natifs pour éviter des valeurs iOS spécifiques (ex: "large")
+// (certaines versions Expo / natives peuvent ne pas accepter ce type de valeur)
 import { enableScreens } from "react-native-screens";
 enableScreens(false);
 
@@ -86,8 +86,8 @@ import {
   Menu,
 } from "react-native-paper";
 
-// Expo Go (Android) SDK 53+ no longer supports remote push notifications.
-// This is a known warning from expo-notifications even when using only local notifications.
+// Expo Go (Android) SDK 53+ ne supporte plus les notifications push distantes.
+// C'est un avertissement connu de expo-notifications, même si on n'utilise que des notifications locales.
 LogBox.ignoreLogs([
   "Push notifications (remote notifications) functionality provided by `expo-notifications` was removed from Expo Go",
   "Push notifications (remote notifications) functionality provided by `expo-notifications` is unavailable in Expo Go",
@@ -97,9 +97,9 @@ LogBox.ignoreLogs([
   "android push notifications(remote notifications)",
 ]);
 
-// Some runtimes log this as a console error instead of a LogBox warning.
-// Filter only this known, non-actionable message.
-const __origConsoleError = console.error;
+// Selon certains environnements, ça sort en erreur console au lieu d'un warning LogBox.
+// On filtre uniquement ce message connu (et non bloquant).
+const originalConsoleError = console.error;
 console.error = (...args) => {
   try {
     const combined = args
@@ -115,12 +115,12 @@ console.error = (...args) => {
       return;
     }
   } catch {
-    // ignore
+    // on ignore
   }
-  __origConsoleError(...args);
+  originalConsoleError(...args);
 };
 
-const __origConsoleWarn = console.warn;
+const originalConsoleWarn = console.warn;
 console.warn = (...args) => {
   try {
     const combined = args
@@ -136,15 +136,15 @@ console.warn = (...args) => {
       return;
     }
   } catch {
-    // ignore
+    // on ignore
   }
-  __origConsoleWarn(...args);
+  originalConsoleWarn(...args);
 };
 
 let Notifications = null;
 try {
-  // In some runtimes (Expo Go mismatch / custom native requirements),
-  // the native module may be unavailable and will require a dev build.
+  // Selon l'environnement (Expo Go pas à jour / besoins natifs spécifiques),
+  // le module natif peut être indisponible et nécessiter un dev build.
   Notifications = require("expo-notifications");
 } catch {
   Notifications = null;
@@ -216,8 +216,8 @@ function normalizeHttpErrorMessage({ status, statusText, bodyText }) {
 async function ensureSystemNotificationsReadyAsync() {
   if (!Notifications) return false;
   try {
-    // SDK 53+ (Expo Go): remote push registration is not supported.
-    // We only need local notifications here.
+    // SDK 53+ (Expo Go) : l'enregistrement push distant n'est pas supporté.
+    // Ici on utilise uniquement des notifications locales.
     const current = await Notifications.getPermissionsAsync();
     let granted = current.granted ?? current.status === "granted";
 
@@ -246,11 +246,11 @@ async function ensureSystemNotificationsReadyAsync() {
 }
 
 function LandingScreen() {
-  // Shared carousel index to synchronize all carousels
+  // Index de carrousel partagé pour synchroniser tous les carrousels
   const [carouselIndex, setCarouselIndex] = React.useState(0);
-  const CAROUSEL_COUNT = 3; // each category has 3 images
+  const CAROUSEL_COUNT = 3; // chaque catégorie a 3 images
 
-  // Global autoplay: advance all carousels together
+  // Lecture auto globale : on avance tous les carrousels en même temps
   React.useEffect(() => {
     const id = setInterval(() => {
       setCarouselIndex((i) => (i + 1) % CAROUSEL_COUNT);
@@ -262,17 +262,17 @@ function LandingScreen() {
     const scrollRef = React.useRef(null);
     const [containerWidth, setContainerWidth] = React.useState(null);
     const windowWidth = Dimensions.get("window").width;
-    const gap = 12; // must match styles.carouselWrap.marginRight
-    const itemWidth = containerWidth ? containerWidth : windowWidth - 36; // fallback
+    const gap = 12; // doit correspondre à styles.carouselWrap.marginRight
+    const itemWidth = containerWidth ? containerWidth : windowWidth - 36; // valeur de secours
     const slideWidth = itemWidth + gap;
 
     const n = items.length;
-    const data = [items[n - 1], ...items, items[0]]; // cloned edges for infinite loop
+    const data = [items[n - 1], ...items, items[0]]; // doublons aux extrémités pour faire une boucle infinie
 
-    // When logical index (0..n-1) changes, animate to displayed index = logical+1
+    // Quand l'index logique (0..n-1) change, on anime vers l'index affiché = logique + 1
     React.useEffect(() => {
       if (!scrollRef.current || !containerWidth) return;
-      const displayed = currentIndex + 1; // account for leading clone
+      const displayed = currentIndex + 1; // prend en compte le doublon de début
       scrollRef.current.scrollTo({ x: displayed * slideWidth, animated: true });
     }, [currentIndex, slideWidth, containerWidth]);
 
@@ -281,7 +281,7 @@ function LandingScreen() {
       const displayed = Math.round(off / slideWidth);
 
       if (displayed === 0) {
-        // landed on leading clone -> jump to real last
+        // arrivé sur le doublon de début -> on saute sur le vrai dernier
         if (scrollRef.current)
           scrollRef.current.scrollTo({ x: n * slideWidth, animated: false });
         onIndexChange(n - 1);
@@ -289,14 +289,14 @@ function LandingScreen() {
       }
 
       if (displayed === n + 1) {
-        // landed on trailing clone -> jump to real first
+        // arrivé sur le doublon de fin -> on saute sur le vrai premier
         if (scrollRef.current)
           scrollRef.current.scrollTo({ x: slideWidth, animated: false });
         onIndexChange(0);
         return;
       }
 
-      // normal
+      // cas normal
       onIndexChange(displayed - 1);
     };
 
@@ -304,7 +304,7 @@ function LandingScreen() {
       <View
         style={{ marginBottom: 8 }}
         onLayout={(e) => {
-          const w = Math.max(0, e.nativeEvent.layout.width - 36); // subtract horizontal padding
+          const w = Math.max(0, e.nativeEvent.layout.width - 36); // retire le padding horizontal
           if (w > 0 && w !== containerWidth) setContainerWidth(w);
         }}
       >
@@ -1103,7 +1103,7 @@ function PaymentScreen({ route }) {
               params: { orderId, total },
             },
           },
-          // SDK 54+: Use null trigger for immediate delivery.
+          // SDK 54+ : trigger à null pour une notification immédiate.
           trigger: null,
         });
       }
@@ -1124,7 +1124,7 @@ function PaymentScreen({ route }) {
           createdAt: serverTimestamp(),
         });
       } catch (firestoreError) {
-        // Continue with payment UX even if save fails
+        // On continue le paiement même si l'enregistrement échoue
         console.log("ORDER SAVE FAILED, but proceeding:", firestoreError);
       }
 
@@ -2159,7 +2159,7 @@ function ProductDetailsScreen({ route }) {
   );
 }
 
-// Simple auth context (demo only)
+// Contexte d'auth simple (démo)
 const AuthContext = React.createContext(null);
 
 const CartContext = React.createContext(null);

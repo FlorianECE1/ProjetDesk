@@ -1,12 +1,12 @@
 import { MD3DarkTheme } from "react-native-paper";
 
-// Neon brand palette
+// Palette de marque (style néon)
 const brandColors = {
-  primary: "#9B59FF", // vibrant purple
-  secondary: "#00E5FF", // cyan neon
+  primary: "#9B59FF", // violet bien punchy
+  secondary: "#00E5FF", // cyan néon
   background: "#000000",
   surface: "#0A0A0A",
-  neonText: "#39FF14", // neon green for text/highlights
+  neonText: "#39FF14", // vert néon pour le texte / les accents
 };
 
 const theme = {
@@ -19,7 +19,7 @@ const theme = {
     surface: brandColors.surface,
     onSurface: brandColors.neonText,
     text: brandColors.neonText,
-    // keep onPrimary white for contrast
+    // onPrimary en blanc pour garder du contraste
     onPrimary: "#000000",
   },
   roundness: 8,
